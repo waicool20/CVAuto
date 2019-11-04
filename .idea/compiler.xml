@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel>
+      <module name="cvauto.api.main" target="1.8" />
+      <module name="cvauto.api.test" target="1.8" />
+      <module name="cvauto.desktop.main" target="1.8" />
+      <module name="cvauto.desktop.test" target="1.8" />
+      <module name="cvauto.main" target="1.8" />
+      <module name="cvauto.modules.api.main" target="1.8" />
+      <module name="cvauto.modules.api.test" target="1.8" />
+      <module name="cvauto.test" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+</project>
