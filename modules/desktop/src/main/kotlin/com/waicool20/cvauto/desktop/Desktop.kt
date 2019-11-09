@@ -10,7 +10,7 @@ import java.awt.GraphicsEnvironment
  */
 object Desktop : IDevice {
     override val input: IInput get() = TODO()
-    override val screens: List<Region<Desktop>>
+    override val screens: List<DesktopRegion>
         get() = GraphicsEnvironment.getLocalGraphicsEnvironment().run {
             screenDevices.sortedByDescending { it == defaultScreenDevice }
                 .map {
