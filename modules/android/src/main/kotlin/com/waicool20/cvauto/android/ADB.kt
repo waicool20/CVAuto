@@ -8,6 +8,10 @@ import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.zip.ZipInputStream
 
+/**
+ * Wrapper for android adb tool, accessing this object downloads android platform tools to %home%/cvauto/android
+ * if it doesn't exist
+ */
 object ADB {
     private val dataDir = Paths.get(System.getProperty("user.home")).resolve("cvauto/android")
     private val platformToolsDir = dataDir.resolve("platform-tools")
@@ -27,6 +31,11 @@ object ADB {
         if (!adbBinaryOk()) error("Problem initializing adb")
     }
 
+    /**
+     * Gets instances of [AndroidDevice] for the devices that are currently connected to adb
+     *
+     * @return [AndroidDevice] list
+     */
     fun getDevices(): List<AndroidDevice> {
         return execute("devices")
             .readLines()
@@ -35,6 +44,12 @@ object ADB {
             .map { AndroidDevice(it.takeWhile { !it.isWhitespace() }) }
     }
 
+    /**
+     * Runs an ADB command
+     *
+     * @param args command or arguments passed onto adb
+     * @return [Process] instance of the command
+     */
     fun execute(vararg args: String): Process {
         return ProcessBuilder("$adbBinaryPath", *args).start()
     }

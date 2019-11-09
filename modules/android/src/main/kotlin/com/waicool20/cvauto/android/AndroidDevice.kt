@@ -3,6 +3,9 @@ package com.waicool20.cvauto.android
 import com.waicool20.cvauto.core.IDevice
 import com.waicool20.cvauto.core.input.IInput
 
+/**
+ * Represents an android device
+ */
 class AndroidDevice(val serial: String) : IDevice {
     /**
      * Wrapper class containing the basic properties of an android device
@@ -78,6 +81,12 @@ class AndroidDevice(val serial: String) : IDevice {
         execute("settings put system pointer_location ${if (isShowingPointerInfo()) "0" else "1"}")
     }
 
+    /**
+     * Same as [ADB.execute] but runs the command specifically on this device
+     *
+     * @param args command or arguments passed onto adb
+     * @return [Process] instance of the command
+     */
     fun execute(vararg args: String): Process {
         return ADB.execute("-s", serial, "exec-out", *args)
     }
