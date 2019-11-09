@@ -13,7 +13,7 @@ import java.util.zip.ZipInputStream
  * if it doesn't exist
  */
 object ADB {
-    private val dataDir = Paths.get(System.getProperty("user.home")).resolve("cvauto/android")
+    private val dataDir = Paths.get(System.getProperty("user.home")).resolve(".cvauto/android")
     private val platformToolsDir = dataDir.resolve("platform-tools")
     private val adbBinaryPath = run {
         val os = System.getProperty("os.name").toLowerCase()
