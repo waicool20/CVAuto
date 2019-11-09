@@ -1,6 +1,7 @@
 package com.waicool20.cvauto.android
 
 import com.waicool20.cvauto.core.IDevice
+import com.waicool20.cvauto.core.Pixels
 import com.waicool20.cvauto.core.input.IInput
 
 /**
@@ -16,8 +17,8 @@ class AndroidDevice(val serial: String) : IDevice {
         val manufacturer: String,
         val model: String,
         val name: String,
-        val displayWidth: Int,
-        val displayHeight: Int
+        val displayWidth: Pixels,
+        val displayHeight: Pixels
     )
 
     /**
