@@ -1,5 +1,6 @@
 package com.waicool20.cvauto.android
 
+import java.io.IOException
 import java.net.URL
 import java.nio.channels.Channels
 import java.nio.channels.FileChannel
@@ -51,7 +52,18 @@ object ADB {
      * @return [Process] instance of the command
      */
     fun execute(vararg args: String): Process {
-        return ProcessBuilder("$adbBinaryPath", *args).start()
+        return try {
+            ProcessBuilder("$adbBinaryPath", *args).start()
+        } catch (e: IOException) {
+            if (e.message?.contains("Permission denied") == true
+                && !System.getProperty("os.name").toLowerCase().contains("win")
+            ) {
+                ProcessBuilder("chmod", "+x", "$adbBinaryPath").start()
+                execute(*args)
+            } else {
+                throw e
+            }
+        }
     }
 
     private fun adbBinaryOk(): Boolean {
