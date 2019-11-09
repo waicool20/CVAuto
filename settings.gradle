@@ -2,4 +2,4 @@ rootProject.name = 'cvauto'
 
 include("modules:core")
 include("modules:desktop")
-
+include("modules:android")
