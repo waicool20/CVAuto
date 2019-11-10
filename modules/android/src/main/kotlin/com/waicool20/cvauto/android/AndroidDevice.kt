@@ -1,8 +1,8 @@
 package com.waicool20.cvauto.android
 
+import com.waicool20.cvauto.android.input.AndroidInput
 import com.waicool20.cvauto.core.IDevice
 import com.waicool20.cvauto.core.Pixels
-import com.waicool20.cvauto.core.input.IInput
 
 /**
  * Represents an android device
@@ -51,9 +51,7 @@ class AndroidDevice(val serial: String) : IDevice {
         )
     }
 
-    override val input: IInput
-        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
-
+    override val input = AndroidInput(this)
     override val screens: List<AndroidRegion> =
         listOf(AndroidRegion(0, 0, properties.displayWidth, properties.displayHeight, this))
 
