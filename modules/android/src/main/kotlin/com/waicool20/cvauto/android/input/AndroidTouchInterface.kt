@@ -1,6 +1,7 @@
 package com.waicool20.cvauto.android.input
 
 import com.waicool20.cvauto.android.AndroidDevice
+import com.waicool20.cvauto.android.lineSequence
 import com.waicool20.cvauto.android.readLines
 import com.waicool20.cvauto.android.readText
 import com.waicool20.cvauto.core.input.ITouchInterface
@@ -51,7 +52,7 @@ class AndroidTouchInterface private constructor(
                 .readText()
                 .split("add device")
                 .find { it.contains("ABS") }
-                ?.lines() ?: error("No input devices found for device ${device.serial}")
+                ?.lines() ?: error("No touch interface found for device ${device.serial}")
             val devFile = DeviceFile(inputInfo[0].takeLastWhile { it != ' ' })
             val touchSpecs = inputInfo.drop(2)
                 .mapNotNull(Specs.Companion::parse).toMap()
@@ -68,7 +69,7 @@ class AndroidTouchInterface private constructor(
 
         // Keep track of the x y coordinates by monitoring the input event bus
         thread(isDaemon = true) {
-            device.execute("getevent $devFile").readLines().forEach {
+            device.executeShell("getevent $devFile").lineSequence().forEach {
                 val (_, sCode, sValue) = it.trim().split(Regex("\\s+"))
                 val eventCode = sCode.toLong(16)
                 val value = sValue.toLong(16)
