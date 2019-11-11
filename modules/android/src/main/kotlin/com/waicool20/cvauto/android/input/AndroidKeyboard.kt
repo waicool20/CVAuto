@@ -11,7 +11,7 @@ class AndroidKeyboard private constructor(
 ) : IKeyboard {
     companion object {
         private val KEY_CODE_REGEX = Regex("[\\w\\d]{4}\\*?")
-        fun getForDevice(device: AndroidDevice): AndroidKeyboard {
+        internal fun getForDevice(device: AndroidDevice): AndroidKeyboard {
             val inputInfo = device.execute("getevent -p")
                 .readText()
                 .split("add device")

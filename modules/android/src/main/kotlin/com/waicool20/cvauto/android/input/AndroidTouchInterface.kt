@@ -46,7 +46,7 @@ class AndroidTouchInterface private constructor(
 
     companion object {
         private val rng = Random()
-        fun getForDevice(device: AndroidDevice): AndroidTouchInterface? {
+        internal fun getForDevice(device: AndroidDevice): AndroidTouchInterface? {
             val inputInfo = device.execute("getevent -p")
                 .readText()
                 .split("add device")
