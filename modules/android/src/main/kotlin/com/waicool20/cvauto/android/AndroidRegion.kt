@@ -7,6 +7,7 @@ import java.awt.Rectangle
 import java.awt.color.ColorSpace
 import java.awt.image.*
 import java.io.DataInputStream
+import java.io.EOFException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
@@ -85,9 +86,12 @@ class AndroidRegion(
                 screenRecordProcess = device.execute("screenrecord", "--output-format=raw-frames", "-")
                 val inputStream = DataInputStream(screenRecordProcess!!.inputStream)
                 while (screenRecordProcess?.isAlive == true && fastCaptureMode) {
-                    lastCapture =
+                    lastCapture = try {
                         createByteRGBBufferedImage(device.properties.displayWidth, device.properties.displayHeight)
                             .apply { inputStream.readFully((raster.dataBuffer as DataBufferByte).data) }
+                    } catch (e: EOFException) {
+                        break
+                    }
                     val current = System.currentTimeMillis()
                     _captureFPS = (captureFPS + 1000.0 / (current - lastCaptureTime)) / 2
                     lastCaptureTime = current
