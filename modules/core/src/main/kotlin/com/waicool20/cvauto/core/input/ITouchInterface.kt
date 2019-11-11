@@ -15,9 +15,36 @@ interface ITouchInterface {
         var isTouching: Boolean = false
     )
 
+    /**
+     * List of touches on the device
+     */
     val touches: List<Touch>
+
+    /**
+     * Sends a touch up event
+     *
+     * @param slot slot id for the touch
+     */
     fun touchUp(slot: Int)
+
+    /**
+     * Sends a touch down event
+     *
+     * @param slot slot id for the touch
+     */
     fun touchDown(slot: Int)
+
+    /**
+     * Sends a touch move event
+     *
+     * @param slot slot id for the touch
+     * @param x x coordinate to move to
+     * @param y y coordinate to move to
+     */
     fun touchMove(slot: Int, x: Int, y: Int)
+
+    /**
+     * Commits the touch events
+     */
     fun eventSync()
 }
