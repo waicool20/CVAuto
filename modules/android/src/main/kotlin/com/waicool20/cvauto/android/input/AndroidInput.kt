@@ -8,7 +8,6 @@ inline class DeviceFile(val path: String)
 
 class AndroidInput internal constructor(device: AndroidDevice) : IInput {
     override val mouse = null
-    override val keyboard: IKeyboard?
-        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
+    override val keyboard = AndroidKeyboard.getForDevice(device)
     override val touchInterface = AndroidTouchInterface.getForDevice(device)
 }

@@ -2,7 +2,6 @@ package com.waicool20.cvauto.android.input
 
 import com.waicool20.cvauto.android.AndroidDevice
 import com.waicool20.cvauto.android.lineSequence
-import com.waicool20.cvauto.android.readLines
 import com.waicool20.cvauto.android.readText
 import com.waicool20.cvauto.core.input.ITouchInterface
 import java.util.*
@@ -155,8 +154,8 @@ class AndroidTouchInterface private constructor(
         sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_POSITION_Y, coordToValue(yCoord, InputEvent.ABS_MT_POSITION_Y))
     }
 
-    private fun sendEvent(type: EventType, code: InputEvent, value: Long) {
-        device.execute("sendevent $devFile ${type.code} ${code.code} $value").readText()
+    private fun sendEvent(type: EventType, event: InputEvent, value: Long) {
+        device.execute("sendevent $devFile ${type.code} ${event.code} $value").readText()
     }
 
     private fun valueToCoord(value: Long, event: InputEvent): Int {
