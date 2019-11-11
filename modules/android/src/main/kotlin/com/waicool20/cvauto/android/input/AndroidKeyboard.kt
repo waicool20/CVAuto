@@ -10,7 +10,7 @@ class AndroidKeyboard private constructor(
     private val keyDevFileMap: Map<Key, DeviceFile>
 ) : IKeyboard {
     companion object {
-        private val KEY_CODE_REGEX = Regex("[\\w\\d]{4}")
+        private val KEY_CODE_REGEX = Regex("[\\w\\d]{4}\\*?")
         fun getForDevice(device: AndroidDevice): AndroidKeyboard {
             val inputInfo = device.execute("getevent -p")
                 .readText()
@@ -25,7 +25,7 @@ class AndroidKeyboard private constructor(
                 devEntryTokens
                     .dropWhile { it != "KEY" }.drop(2)
                     .takeWhile { it.matches(KEY_CODE_REGEX) }
-                    .mapNotNull { Key.findByCode(it.toLong(16)) }
+                    .mapNotNull { Key.findByCode(it.take(4).toLong(16)) }
                     .forEach { keyDevFileMap[it] = devFile }
             }
             return AndroidKeyboard(device, keyDevFileMap)
