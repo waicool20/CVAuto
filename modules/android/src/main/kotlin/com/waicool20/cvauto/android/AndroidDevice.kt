@@ -7,7 +7,7 @@ import com.waicool20.cvauto.core.Pixels
 /**
  * Represents an android device
  */
-class AndroidDevice(val serial: String) : IDevice {
+class AndroidDevice internal constructor(val serial: String) : IDevice {
     /**
      * Wrapper class containing the basic properties of an android device
      */
