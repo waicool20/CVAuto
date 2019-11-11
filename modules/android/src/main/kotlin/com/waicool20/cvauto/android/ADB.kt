@@ -32,6 +32,8 @@ object ADB {
         if (!adbBinaryOk()) error("Problem initializing adb")
     }
 
+    private val deviceCache = mutableMapOf<String, AndroidDevice>()
+
     /**
      * Gets instances of [AndroidDevice] for the devices that are currently connected to adb
      *
@@ -42,7 +44,8 @@ object ADB {
             .readLines()
             .drop(1)
             .filter { it.isNotBlank() }
-            .map { AndroidDevice(it.takeWhile { !it.isWhitespace() }) }
+            .map { it.takeWhile { !it.isWhitespace() } }
+            .map { deviceCache.getOrPut(it) { AndroidDevice(it) } }
     }
 
     /**
