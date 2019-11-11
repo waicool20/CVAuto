@@ -81,7 +81,7 @@ class AndroidDevice(val serial: String) : IDevice {
     }
 
     /**
-     * Same as [ADB.execute] but runs the command specifically on this device
+     * Runs a command specifically on this device using "exec-out"
      *
      * @param args command or arguments passed onto adb
      * @return [Process] instance of the command
@@ -89,6 +89,18 @@ class AndroidDevice(val serial: String) : IDevice {
     fun execute(vararg args: String): Process {
         return ADB.execute("-s", serial, "exec-out", *args)
     }
+
+    /**
+     * Same as [execute] but uses "shell" instead of "exec-out",
+     * use this if there are input/output issues with [execute]
+     *
+     * @param args command or arguments passed onto adb
+     * @return [Process] instance of the command
+     */
+    fun executeShell(vararg args: String): Process {
+        return ADB.execute("-s", serial, "shell", *args)
+    }
+
 
     override fun toString(): String {
         return "AndroidDevice(serial = $serial)"
