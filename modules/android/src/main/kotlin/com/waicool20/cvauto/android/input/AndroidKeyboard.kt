@@ -36,14 +36,14 @@ class AndroidKeyboard private constructor(
 
     override val heldKeys: List<String> get() = Collections.unmodifiableList(_heldKeys)
 
-    override fun keyUp(keyName: String) {
+    override fun keyUp(keyName: String) = synchronized(this) {
         val key = getKey(keyName)
         val devFile = keyDevFileMap[key]?.path ?: return
         sendKeyEvent(key, devFile, InputEvent.KEY_UP)
         sendEvent(devFile, EventType.EV_SYN, InputEvent.SYN_REPORT, 0)
     }
 
-    override fun keyDown(keyName: String) {
+    override fun keyDown(keyName: String) = synchronized(this) {
         val key = getKey(keyName)
         val devFile = keyDevFileMap[key]?.path ?: return
         sendKeyEvent(key, devFile, InputEvent.KEY_DOWN)
@@ -55,7 +55,7 @@ class AndroidKeyboard private constructor(
     }
 
     private fun getKey(keyName: String): Key {
-        return when(keyName) {
+        return when (keyName) {
             "CTRL" -> Key.KEY_LEFTCTRL
             "ALT" -> Key.KEY_LEFTALT
             "SHIFT" -> Key.KEY_LEFTSHIFT
