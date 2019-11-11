@@ -121,7 +121,7 @@ class AndroidTouchInterface private constructor(
         }
     }
 
-    override fun touchSync() = synchronized(this) {
+    override fun eventSync() = synchronized(this) {
         sendEvent(EventType.EV_SYN, InputEvent.SYN_REPORT, 0)
     }
 

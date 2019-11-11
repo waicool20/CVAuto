@@ -19,5 +19,5 @@ interface ITouchInterface {
     fun touchUp(slot: Int)
     fun touchDown(slot: Int)
     fun touchMove(slot: Int, x: Int, y: Int)
-    fun touchSync()
+    fun eventSync()
 }
