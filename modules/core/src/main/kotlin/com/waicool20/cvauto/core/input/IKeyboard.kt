@@ -1,6 +1,18 @@
 package com.waicool20.cvauto.core.input
 
+typealias CharactersPerSecond = Int
+
 interface IKeyboard {
+    interface Settings {
+        var defaultTypingSpeed: CharactersPerSecond
+        var typingSpeedVariance: Double
+    }
+
+    /**
+     * Settings for this keyboard
+     */
+    val settings: Settings
+
     /**
      * List of the names of held keys eg. A, B, COMMA, ALT etc.
      */
@@ -32,5 +44,5 @@ interface IKeyboard {
      *
      * @param string String to type
      */
-    fun type(string: String)
+    fun type(string: String, speed: CharactersPerSecond = settings.defaultTypingSpeed)
 }
