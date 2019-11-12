@@ -2,13 +2,22 @@ package com.waicool20.cvauto.android.input
 
 import com.waicool20.cvauto.android.AndroidDevice
 import com.waicool20.cvauto.android.readText
+import com.waicool20.cvauto.core.input.CharactersPerSecond
 import com.waicool20.cvauto.core.input.IKeyboard
 import java.util.*
+import java.util.concurrent.TimeUnit
+import kotlin.math.roundToLong
+import kotlin.random.Random
 
 class AndroidKeyboard private constructor(
     private val device: AndroidDevice,
     private val keyDevFileMap: Map<Key, DeviceFile>
 ) : IKeyboard {
+    data class AndroidKeyboardSettings(
+        override var defaultTypingSpeed: CharactersPerSecond = 7,
+        override var typingSpeedVariance: Double = 0.25
+    ) : IKeyboard.Settings
+
     companion object {
         private val KEY_CODE_REGEX = Regex("[\\w\\d]{4}\\*?")
         internal fun getForDevice(device: AndroidDevice): AndroidKeyboard {
@@ -34,6 +43,8 @@ class AndroidKeyboard private constructor(
 
     private val _heldKeys = mutableListOf<String>()
 
+    override val settings: AndroidKeyboardSettings = AndroidKeyboardSettings()
+
     override val heldKeys: List<String> get() = Collections.unmodifiableList(_heldKeys)
 
     override fun keyUp(keyName: String): Unit = synchronized(this) {
@@ -58,12 +69,18 @@ class AndroidKeyboard private constructor(
         return getKey(keyName) != Key.KEY_UNKNOWN
     }
 
-    override fun type(string: String) {
+    override fun type(string: String, speed: CharactersPerSecond) {
         string.forEach { c ->
             if (Key.requiresShift(c)) keyDown("SHIFT")
             keyDown("$c")
             keyUp("$c")
-            if(Key.requiresShift(c)) keyUp("SHIFT")
+            if (Key.requiresShift(c)) keyUp("SHIFT")
+            TimeUnit.MILLISECONDS.sleep(
+                (1000.0 / speed * (1 + Random.nextDouble(
+                    -settings.typingSpeedVariance,
+                    settings.typingSpeedVariance
+                ))).roundToLong()
+            )
         }
     }
 
