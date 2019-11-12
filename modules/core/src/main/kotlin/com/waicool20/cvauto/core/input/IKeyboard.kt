@@ -26,4 +26,11 @@ interface IKeyboard {
      * @return true if the key can be typed into the device
      */
     fun checkSupport(keyName: String): Boolean
+
+    /**
+     * Types the given string
+     *
+     * @param string String to type
+     */
+    fun type(string: String)
 }
