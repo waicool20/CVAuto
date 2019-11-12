@@ -37,19 +37,21 @@ class AndroidKeyboard private constructor(
     override val heldKeys: List<String> get() = Collections.unmodifiableList(_heldKeys)
 
     override fun keyUp(keyName: String): Unit = synchronized(this) {
+        if (!heldKeys.contains(keyName)) return@synchronized
         val key = getKey(keyName)
         val devFile = keyDevFileMap[key]?.path ?: return
         sendKeyEvent(key, devFile, InputEvent.KEY_UP)
         sendEvent(devFile, EventType.EV_SYN, InputEvent.SYN_REPORT, 0)
-        _heldKeys.add(keyName)
+        _heldKeys.remove(keyName)
     }
 
     override fun keyDown(keyName: String): Unit = synchronized(this) {
+        if (heldKeys.contains(keyName)) return@synchronized
         val key = getKey(keyName)
         val devFile = keyDevFileMap[key]?.path ?: return
         sendKeyEvent(key, devFile, InputEvent.KEY_DOWN)
         sendEvent(devFile, EventType.EV_SYN, InputEvent.SYN_REPORT, 0)
-        _heldKeys.remove(keyName)
+        _heldKeys.add(keyName)
     }
 
     override fun checkSupport(keyName: String): Boolean {
