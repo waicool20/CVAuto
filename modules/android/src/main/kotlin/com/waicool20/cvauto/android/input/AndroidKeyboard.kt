@@ -58,6 +58,15 @@ class AndroidKeyboard private constructor(
         return getKey(keyName) != Key.KEY_UNKNOWN
     }
 
+    override fun type(string: String) {
+        string.forEach { c ->
+            if (Key.requiresShift(c)) keyDown("SHIFT")
+            keyDown("$c")
+            keyUp("$c")
+            if(Key.requiresShift(c)) keyUp("SHIFT")
+        }
+    }
+
     private fun getKey(keyName: String): Key {
         return when (keyName) {
             "CTRL" -> Key.KEY_LEFTCTRL

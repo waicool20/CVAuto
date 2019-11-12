@@ -2,7 +2,6 @@ package com.waicool20.cvauto.android.input
 
 import com.waicool20.cvauto.android.AndroidDevice
 import com.waicool20.cvauto.core.input.IInput
-import com.waicool20.cvauto.core.input.IKeyboard
 
 inline class DeviceFile(val path: String)
 
