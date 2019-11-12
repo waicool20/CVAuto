@@ -688,9 +688,10 @@ enum class Key(val code: Long) {
          * @param char Character to check
          * @return true if shift is needed
          */
-        fun requiresShift(char: Char) = shiftChars.contains(char)
+        fun requiresShift(char: Char) = char.isUpperCase() || shiftChars.contains(char)
 
         private val puncMapping = mapOf(
+            ' ' to KEY_SPACE,
                 '~' to KEY_GREEN,
                 '!' to KEY_1,
                 '@' to KEY_2,
