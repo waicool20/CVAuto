@@ -1,8 +1,13 @@
 package com.waicool20.cvauto.util
 
 import com.waicool20.cvauto.core.Millis
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.onEach
 import java.util.concurrent.TimeUnit
 import kotlin.math.pow
+import kotlin.math.roundToInt
 
 object Animations {
     class AnimationSequence(
@@ -11,6 +16,7 @@ object Animations {
     ) : Sequence<Double> {
         override fun iterator() = sequence.iterator()
         fun timed(duration: Millis) = TimedAnimationSequence(steps, duration, sequence)
+        fun timedFlow(duration: Millis) = asFlow().onEach { delay(duration / steps) }.conflate()
     }
 
     private fun AnimationSequence(steps: Long, block: suspend SequenceScope<Double>.() -> Unit) =
@@ -21,12 +27,32 @@ object Animations {
         duration: Millis,
         sequence: Sequence<Double>
     ) : Sequence<Double> {
-        private val iterator = sequence.iterator()
+        private val values = sequence.toList()
         private val sleepPerStep = duration / steps
-        override fun iterator(): Iterator<Double> = object : Iterator<Double> by iterator {
+        private var lastTime = -1L
+        private var currentStep = 0
+
+        override fun iterator(): Iterator<Double> = object : Iterator<Double> {
             override fun next(): Double {
-                TimeUnit.MILLISECONDS.sleep(sleepPerStep)
-                return iterator.next()
+                if (lastTime == -1L) {
+                    lastTime = System.currentTimeMillis()
+                    TimeUnit.MILLISECONDS.sleep(sleepPerStep)
+                    return values[currentStep++]
+                }
+                val dif = System.currentTimeMillis() - lastTime
+                lastTime = System.currentTimeMillis()
+                return if (dif < sleepPerStep) {
+                    TimeUnit.MILLISECONDS.sleep(sleepPerStep - dif)
+                    values[currentStep++]
+                } else {
+                    currentStep += (dif / sleepPerStep).toInt()
+                    currentStep = currentStep.coerceAtMost(values.lastIndex)
+                    values[currentStep]
+                }
+            }
+
+            override fun hasNext(): Boolean {
+                return currentStep < values.lastIndex
             }
         }
     }

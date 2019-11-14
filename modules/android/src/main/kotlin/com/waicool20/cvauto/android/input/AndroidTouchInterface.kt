@@ -6,10 +6,16 @@ import com.waicool20.cvauto.android.readText
 import com.waicool20.cvauto.core.Millis
 import com.waicool20.cvauto.core.input.ITouchInterface
 import com.waicool20.cvauto.util.Animations
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
 import java.nio.ByteBuffer
 import java.util.*
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
+import kotlin.coroutines.CoroutineContext
 import kotlin.math.*
 
 class AndroidTouchInterface private constructor(
@@ -144,23 +150,27 @@ class AndroidTouchInterface private constructor(
     }
 
     override fun gesture(swipes: List<ITouchInterface.Swipe>, duration: Millis) {
-        swipes.map { swipe ->
-            thread {
-                touchDown(swipe.slot); eventSync()
-                val dy = (swipe.y2 - swipe.y1).toDouble()
-                val dx = (swipe.x2 - swipe.x1).toDouble()
-                val steps = sqrt(dy.pow(2) + dx.pow(2)).roundToLong()
-                val m = dy / dx
-                val c = swipe.y1 - (swipe.x1 * m)
-                Animations.EaseInOutQuad(swipe.x1, swipe.x2, steps).timed(duration).forEach { stepX ->
-                    val stepY = (m * stepX + c).roundToInt()
-                    touchMove(swipe.slot, stepX.roundToInt(), stepY)
-                    eventSync()
+        runBlocking(Executors.newCachedThreadPool().asCoroutineDispatcher()) {
+            supervisorScope {
+                swipes.forEach { swipe->
+                    launch {
+                        touchDown(swipe.slot); eventSync()
+                        val dy = (swipe.y2 - swipe.y1).toDouble()
+                        val dx = (swipe.x2 - swipe.x1).toDouble()
+                        val steps = sqrt(dy.pow(2) + dx.pow(2)).roundToLong()
+                        val m = dy / dx
+                        val c = swipe.y1 - (swipe.x1 * m)
+                        Animations.EaseInOutQuad(swipe.x1, swipe.x2, steps).timedFlow(duration).onEach { stepX ->
+                            val stepY = (m * stepX + c).roundToInt()
+                            touchMove(swipe.slot, stepX.roundToInt(), stepY)
+                            eventSync()
+                        }.collect()
+                        touchUp(swipe.slot); eventSync()
+                        delay(settings.postTapDelay)
+                    }
                 }
-                touchUp(swipe.slot); eventSync()
-                TimeUnit.MILLISECONDS.sleep(settings.postTapDelay)
             }
-        }.forEach { it.join() }
+        }
     }
 
     override fun pinch(x: Int, y: Int, r1: Int, r2: Int, angle: Double, duration: Millis) = synchronized(this) {
