@@ -3,10 +3,14 @@ package com.waicool20.cvauto.android.input
 import com.waicool20.cvauto.android.AndroidDevice
 import com.waicool20.cvauto.android.lineSequence
 import com.waicool20.cvauto.android.readText
+import com.waicool20.cvauto.core.Millis
 import com.waicool20.cvauto.core.input.ITouchInterface
+import com.waicool20.cvauto.util.Animations
+import java.nio.ByteBuffer
 import java.util.*
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
-import kotlin.math.roundToInt
+import kotlin.math.*
 
 class AndroidTouchInterface private constructor(
     private val device: AndroidDevice,
@@ -42,7 +46,10 @@ class AndroidTouchInterface private constructor(
         }
     }
 
-    private val _touches: List<ITouchInterface.Touch>
+    data class AndroidTouchInterfaceSettings(
+        override var midTapDelay: Millis = 0,
+        override var postTapDelay: Millis = 250
+    ) : ITouchInterface.Settings
 
     companion object {
         private val rng = Random()
@@ -58,6 +65,10 @@ class AndroidTouchInterface private constructor(
             return AndroidTouchInterface(device, devFile, touchSpecs)
         }
     }
+
+    private val _touches: List<ITouchInterface.Touch>
+
+    override val settings = AndroidTouchInterfaceSettings()
 
     override val touches get() = Collections.unmodifiableList(_touches)
 
@@ -124,6 +135,51 @@ class AndroidTouchInterface private constructor(
         sendEvent(EventType.EV_SYN, InputEvent.SYN_REPORT, 0)
     }
 
+    override fun tap(slot: Int, x: Int, y: Int) = synchronized(this) {
+        touchMove(slot, x, y); eventSync()
+        touchDown(slot); eventSync()
+        TimeUnit.MILLISECONDS.sleep(settings.midTapDelay)
+        touchUp(slot); eventSync()
+        TimeUnit.MILLISECONDS.sleep(settings.postTapDelay)
+    }
+
+    override fun gesture(swipes: List<ITouchInterface.Swipe>, duration: Millis) {
+        swipes.map { swipe ->
+            thread {
+                touchDown(swipe.slot); eventSync()
+                val dy = (swipe.y2 - swipe.y1).toDouble()
+                val dx = (swipe.x2 - swipe.x1).toDouble()
+                val steps = sqrt(dy.pow(2) + dx.pow(2)).roundToLong()
+                val m = dy / dx
+                val c = swipe.y1 - (swipe.x1 * m)
+                Animations.EaseInOutQuad(swipe.x1, swipe.x2, steps).timed(duration).forEach { stepX ->
+                    val stepY = (m * stepX + c).roundToInt()
+                    touchMove(swipe.slot, stepX.roundToInt(), stepY)
+                    eventSync()
+                }
+                touchUp(swipe.slot); eventSync()
+                TimeUnit.MILLISECONDS.sleep(settings.postTapDelay)
+            }
+        }.forEach { it.join() }
+    }
+
+    override fun pinch(x: Int, y: Int, r1: Int, r2: Int, angle: Double, duration: Millis) = synchronized(this) {
+        val rad = (angle * PI) / 180
+        val src1x = (r1 * cos(rad)).roundToInt() + x
+        val src1y = (r1 * sin(rad)).roundToInt() + y
+
+        val dest1x = (r2 * cos(rad)).roundToInt() + x
+        val dest1y = (r2 * sin(rad)).roundToInt() + y
+
+        gesture(
+            listOf(
+                ITouchInterface.Swipe(0, src1x, src1y, dest1x, dest1y),
+                ITouchInterface.Swipe(1, -src1x, -src1y, -dest1x, -dest1y)
+            ),
+            duration
+        )
+    }
+
     private fun sendCoords(x: Int, y: Int) {
         var xCoord = x
         var yCoord = y
@@ -155,7 +211,7 @@ class AndroidTouchInterface private constructor(
     }
 
     private fun sendEvent(type: EventType, event: InputEvent, value: Long) {
-        device.execute("sendevent $devFile ${type.code} ${event.code} $value").readText()
+        device.execute("sendevent ${devFile.path} ${type.code} ${event.code} $value")
     }
 
     private fun valueToCoord(value: Long, event: InputEvent): Int {
