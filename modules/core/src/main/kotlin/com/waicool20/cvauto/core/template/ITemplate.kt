@@ -17,7 +17,7 @@ interface ITemplate {
      * Score threshold for the template, ranges from 0.0 to 1.0, 0.0 means absolutely nothing in common
      * while 1.0 means 100% match.
      */
-    val threshold: Double
+    val threshold: Double?
 
     /**
      * This function is in charge of loading the image into memory

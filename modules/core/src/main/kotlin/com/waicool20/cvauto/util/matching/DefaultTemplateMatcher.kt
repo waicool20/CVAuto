@@ -14,24 +14,35 @@ import kotlin.math.roundToInt
  * [TemplateDiffSquaredNorm]
  */
 class DefaultTemplateMatcher : ITemplateMatcher {
+    data class Settings(
+        /**
+         * Images get scaled down to this width while maintaining ratio during matching,
+         * A smaller value will lead to faster matches but with poorer accuracy.
+         */
+        var matchWidth: Double = 500.0,
+        /**
+         * Default threshold in case it isn't specified in the template
+         */
+        var defaultThreshold: Double = 0.9
+    )
+
     companion object {
-        private const val MATCHING_RES_WIDTH = 500.0
         private val matchingAlgo = TemplateIntensityImage_MT(TemplateDiffSquaredNorm())
     }
 
     private val imageCache = mutableMapOf<ITemplate, GrayF32>()
 
+    val settings = Settings()
 
     override fun findBest(template: ITemplate, image: GrayF32): ITemplateMatcher.FindResult? {
         return findBest(template, image, 1).firstOrNull()
     }
 
     override fun findBest(template: ITemplate, image: GrayF32, count: Int): List<ITemplateMatcher.FindResult> {
-        val scaleFactor = MATCHING_RES_WIDTH / image.width
+        val scaleFactor = settings.matchWidth / image.width
         val scaledImage = image.scale(scaleFactor)
         val lTemplate = template.load()
         val bTemplate = imageCache.getOrPut(template) { lTemplate.asGrayF32().scale(scaleFactor) }
-
 
         val matcher = TemplateMatching(matchingAlgo)
         matcher.setImage(scaledImage)
@@ -41,7 +52,8 @@ class DefaultTemplateMatcher : ITemplateMatcher {
 
         return matcher.results.toList().mapNotNull {
             val adjustedScore = it.score + 1
-            if (adjustedScore < template.threshold) return@mapNotNull null
+            val threshold = template.threshold ?: settings.defaultThreshold
+            if (adjustedScore < threshold) return@mapNotNull null
             ITemplateMatcher.FindResult(
                 Rectangle(
                     (it.x / scaleFactor).roundToInt(),

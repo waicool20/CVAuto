@@ -12,7 +12,7 @@ import javax.imageio.ImageIO
  */
 class FileTemplate(
     private val path: Path,
-    override val threshold: Double
+    override val threshold: Double? = null
 ) : ITemplate {
     override val source: URI = path.toUri()
 
