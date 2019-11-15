@@ -10,6 +10,7 @@ import java.io.DataInputStream
 import java.io.EOFException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
+import kotlin.math.roundToInt
 
 class AndroidRegion(
     x: Pixels,
@@ -77,6 +78,24 @@ class AndroidRegion(
 
     override fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<AndroidDevice> {
         return RegionFindResult(mapRectangleToRegion(result.rectangle), result.score)
+    }
+
+    override fun click(random: Boolean) {
+        if (random) {
+            val r = randomPoint()
+            device.input.touchInterface?.tap(0, r.x, r.y)
+        } else {
+            device.input.touchInterface?.tap(0, centerX.roundToInt(), centerY.roundToInt())
+        }
+    }
+
+    override fun type(text: String) {
+        click()
+        device.input.keyboard.type(text)
+    }
+
+    override fun clone(): Any {
+        return AndroidRegion(x, y, width, height, device)
     }
 
     private fun doFastCapture(): BufferedImage {
