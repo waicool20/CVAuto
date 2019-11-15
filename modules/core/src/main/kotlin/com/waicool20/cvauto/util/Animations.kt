@@ -2,12 +2,12 @@ package com.waicool20.cvauto.util
 
 import com.waicool20.cvauto.core.Millis
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.onEach
 import java.util.concurrent.TimeUnit
 import kotlin.math.pow
-import kotlin.math.roundToInt
 
 object Animations {
     class AnimationSequence(
@@ -15,8 +15,16 @@ object Animations {
         private val sequence: Sequence<Double>
     ) : Sequence<Double> {
         override fun iterator() = sequence.iterator()
-        fun timed(duration: Millis) = TimedAnimationSequence(steps, duration, sequence)
-        fun timedFlow(duration: Millis) = asFlow().onEach { delay(duration / steps) }.conflate()
+
+        fun timed(duration: Millis): Sequence<Double> {
+            val _steps = steps.coerceAtMost(duration)
+            return TimedAnimationSequence(_steps, duration, sequence)
+        }
+
+        fun timedFlow(duration: Millis): Flow<Double> {
+            val _steps = steps.coerceAtMost(duration)
+            return asFlow().onEach { delay(duration / _steps) }.conflate()
+        }
     }
 
     private fun AnimationSequence(steps: Long, block: suspend SequenceScope<Double>.() -> Unit) =
@@ -60,14 +68,14 @@ object Animations {
     fun Linear(start: Int, final: Int, steps: Long) = Linear(start.toDouble(), final.toDouble(), steps)
     fun Linear(start: Long, final: Long, steps: Long) = Linear(start.toDouble(), final.toDouble(), steps)
     fun Linear(start: Double, final: Double, steps: Long) = AnimationSequence(steps) {
-        for (step in 0 until steps) yield(final * step / steps + start)
+        for (step in 0 until steps) yield((final - start) * step / steps + start)
     }
 
     fun EaseInQuad(start: Int, final: Int, steps: Long) = EaseInQuad(start.toDouble(), final.toDouble(), steps)
     fun EaseInQuad(start: Long, final: Long, steps: Long) = EaseInQuad(start.toDouble(), final.toDouble(), steps)
     fun EaseInQuad(start: Double, final: Double, steps: Long) = AnimationSequence(steps) {
         for (step in 0 until steps) {
-            yield(final * (step.toDouble() / steps).pow(2) + start)
+            yield((final - start) * (step.toDouble() / steps).pow(2) + start)
         }
     }
 
@@ -77,7 +85,7 @@ object Animations {
         var _step: Double
         for (step in 0 until steps) {
             _step = step.toDouble() / steps
-            yield(-final * _step * (_step - 2) + start)
+            yield(-(final - start) * _step * (_step - 2) + start)
         }
     }
 
@@ -88,10 +96,10 @@ object Animations {
         for (step in 0 until steps) {
             _step = step * 2.0 / steps
             if (_step < 1) {
-                yield(final / 2 * _step.pow(2) + start)
+                yield((final - start) / 2 * _step.pow(2) + start)
             } else {
                 _step--
-                yield(-final / 2 * (_step * (_step - 2) - 1) + start)
+                yield(-(final - start) / 2 * (_step * (_step - 2) - 1) + start)
             }
         }
     }
