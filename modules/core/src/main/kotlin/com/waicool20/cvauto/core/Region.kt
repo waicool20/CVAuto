@@ -1,15 +1,17 @@
 package com.waicool20.cvauto.core
 
 import com.waicool20.cvauto.core.template.ITemplate
+import com.waicool20.cvauto.core.input.IInput
 import com.waicool20.cvauto.util.area
 import com.waicool20.cvauto.util.asGrayF32
 import com.waicool20.cvauto.util.matching.DefaultTemplateMatcher
 import com.waicool20.cvauto.util.matching.ITemplateMatcher
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.*
+import java.awt.Point
 import java.awt.Rectangle
 import java.awt.image.BufferedImage
+import kotlin.math.roundToInt
+import kotlin.random.Random
 
 /**
  * Represents a Region on a [IDevice]
@@ -187,4 +189,59 @@ abstract class Region<T : IDevice>(
     fun compareTo(other: Region<T>): Int {
         return area - other.area
     }
+
+    fun randomPoint(): Point {
+        GlobalScope.launch {
+        }
+        var dx = Random.nextDouble(width * 0.45)
+        var dy = Random.nextDouble(height * 0.45)
+        if (Random.nextBoolean()) dx = -dx
+        if (Random.nextBoolean()) dy = -dy
+        return Point((centerX + dx).roundToInt(), (centerY + dy).roundToInt())
+    }
+
+    //<editor-fold desc="Quick input shortcuts">
+
+    /**
+     * Clicks this region
+     * For more complex operations please use the devices respective [IInput]
+     *
+     * @param random Whether or not this clicks a random point in this region, defaults true
+     */
+    abstract fun click(random: Boolean = true)
+
+    /**
+     * Clicks this region, while a condition holds true
+     * For more complex operations please use the devices respective [IInput]
+     *
+     * @param random Whether or not this clicks a random point in this region, defaults true
+     * @param period Delay between each check/click
+     * @param timeout When timeout is reached this function will stop clicking, use -1 to disable timeout
+     * @param condition Boolean condition function
+     */
+    suspend fun clickWhile(random: Boolean = true, period: Millis = 100, timeout: Millis = -1, condition: () -> Boolean) {
+        if (timeout > 0) {
+            withTimeoutOrNull(timeout) {
+                while (isActive && condition()) {
+                    click(random)
+                    delay(period)
+                }
+            }
+        } else {
+            while (condition()) {
+                click(random)
+                delay(period)
+            }
+        }
+    }
+
+    /**
+     * Type text in this region
+     * For more complex operations please use the devices respective [IInput]
+     *
+     * @param text Text to type
+     */
+    abstract fun type(text: String)
+
+    //</editor-fold>
 }
