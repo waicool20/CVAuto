@@ -76,7 +76,7 @@ class AndroidRegion(
     }
 
     override fun mapRectangleToRegion(rect: Rectangle): Region<AndroidDevice> {
-        return AndroidRegion(rect.x, rect.y, rect.width, rect.height, device)
+        return AndroidRegion(rect.x + x, rect.y + y, rect.width, rect.height, device)
     }
 
     override fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<AndroidDevice> {

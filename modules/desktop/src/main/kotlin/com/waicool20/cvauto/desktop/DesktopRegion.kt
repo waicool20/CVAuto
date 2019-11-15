@@ -26,7 +26,7 @@ class DesktopRegion(
     }
 
     override fun mapRectangleToRegion(rect: Rectangle): Region<Desktop> {
-        return DesktopRegion(rect.x, rect.y, rect.width, rect.height, device)
+        return DesktopRegion(rect.x + x, rect.y + y, rect.width, rect.height, device)
     }
 
     override fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<Desktop> {
