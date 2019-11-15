@@ -33,6 +33,14 @@ class DesktopRegion(
         return RegionFindResult(mapRectangleToRegion(result.rectangle), result.score)
     }
 
+    override fun click(random: Boolean) {
+        throw UnsupportedOperationException("Not Implemented") // TODO Implement this function
+    }
+
+    override fun type(text: String) {
+        throw UnsupportedOperationException("Not Implemented") // TODO Implement this function
+    }
+
     override fun clone(): Any {
         return DesktopRegion(x, y, width, height, device)
     }
