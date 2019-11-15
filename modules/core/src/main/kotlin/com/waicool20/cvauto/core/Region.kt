@@ -219,16 +219,16 @@ abstract class Region<T : IDevice>(
      * @param timeout When timeout is reached this function will stop clicking, use -1 to disable timeout
      * @param condition Boolean condition function
      */
-    suspend fun clickWhile(random: Boolean = true, period: Millis = 100, timeout: Millis = -1, condition: () -> Boolean) {
+    suspend fun clickWhile(random: Boolean = true, period: Millis = 100, timeout: Millis = -1, condition: (Region<T>) -> Boolean) {
         if (timeout > 0) {
             withTimeoutOrNull(timeout) {
-                while (isActive && condition()) {
+                while (isActive && condition(this@Region)) {
                     click(random)
                     delay(period)
                 }
             }
         } else {
-            while (condition()) {
+            while (condition(this@Region)) {
                 click(random)
                 delay(period)
             }
