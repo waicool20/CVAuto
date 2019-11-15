@@ -2,7 +2,6 @@ package com.waicool20.cvauto.core.template
 
 import java.awt.image.BufferedImage
 import java.net.URI
-import java.nio.file.Files
 import java.nio.file.Path
 import javax.imageio.ImageIO
 
