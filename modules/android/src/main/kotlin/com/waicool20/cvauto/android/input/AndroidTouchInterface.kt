@@ -175,16 +175,15 @@ class AndroidTouchInterface private constructor(
 
     override fun pinch(x: Int, y: Int, r1: Int, r2: Int, angle: Double, duration: Millis) = synchronized(this) {
         val rad = (angle * PI) / 180
-        val src1x = (r1 * cos(rad)).roundToInt() + x
-        val src1y = (r1 * sin(rad)).roundToInt() + y
-
-        val dest1x = (r2 * cos(rad)).roundToInt() + x
-        val dest1y = (r2 * sin(rad)).roundToInt() + y
+        val dr1x = (r1 * cos(rad)).roundToInt()
+        val dr1y = (r1 * sin(rad)).roundToInt()
+        val dr2x = (r2 * cos(rad)).roundToInt()
+        val dr2y = (r2 * sin(rad)).roundToInt()
 
         gesture(
             listOf(
-                ITouchInterface.Swipe(0, src1x, src1y, dest1x, dest1y),
-                ITouchInterface.Swipe(1, -src1x, -src1y, -dest1x, -dest1y)
+                ITouchInterface.Swipe(0, x + dr1x, y + dr1y, x + dr2x, y + dr2y),
+                ITouchInterface.Swipe(1, x - dr1x, y - dr1y, x - dr2x, y - dr2y)
             ),
             duration
         )
