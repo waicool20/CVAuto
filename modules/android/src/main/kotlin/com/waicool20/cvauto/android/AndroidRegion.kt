@@ -55,7 +55,7 @@ class AndroidRegion(
     val captureFPS get() = _captureFPS
 
     override fun capture(): BufferedImage {
-        if (fastCaptureMode) return doFastCapture()
+        if (fastCaptureMode) return doFastCapture().getSubimage(x, y, width, height)
         var throwable: Throwable? = null
         for (i in 0 until 3) {
             try {
@@ -67,7 +67,7 @@ class AndroidRegion(
                 inputStream.skip(8)
                 return createByteRGBBufferedImage(width, height, true).apply {
                     inputStream.readFully((raster.dataBuffer as DataBufferByte).data)
-                }
+                }.getSubimage(x, y, this.width, this.height)
             } catch (t: Throwable) {
                 throwable = t
             }
