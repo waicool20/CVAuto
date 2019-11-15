@@ -45,8 +45,17 @@ class DefaultTemplateMatcher : ITemplateMatcher {
     }
 
     override fun findBest(template: ITemplate, image: GrayF32, count: Int): List<ITemplateMatcher.FindResult> {
-        val scaleFactor = settings.matchWidth / image.width
-        val scaledImage = image.scale(scaleFactor)
+        val scaleFactor: Double
+        val scaledImage: GrayF32
+
+        if (image.width > settings.matchWidth) {
+            scaleFactor = settings.matchWidth / image.width
+            scaledImage = image.scale(scaleFactor)
+        } else {
+            scaleFactor = 1.0
+            scaledImage = image
+        }
+
         val lTemplate = template.load()
         val bTemplate = imageCache.getOrPut(template) { lTemplate.asGrayF32().scale(scaleFactor) }
 
