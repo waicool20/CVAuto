@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.yield
 import java.util.concurrent.TimeUnit
 import kotlin.math.pow
 
@@ -26,9 +27,6 @@ object Animations {
             return asFlow().onEach { delay(duration / _steps) }.conflate()
         }
     }
-
-    private fun AnimationSequence(steps: Long, block: suspend SequenceScope<Double>.() -> Unit) =
-        AnimationSequence(steps, sequence(block))
 
     class TimedAnimationSequence(
         steps: Long,
@@ -65,41 +63,36 @@ object Animations {
         }
     }
 
-    fun Linear(start: Int, final: Int, steps: Long) = Linear(start.toDouble(), final.toDouble(), steps)
-    fun Linear(start: Long, final: Long, steps: Long) = Linear(start.toDouble(), final.toDouble(), steps)
-    fun Linear(start: Double, final: Double, steps: Long) = AnimationSequence(steps) {
-        for (step in 0 until steps) yield((final - start) * step / steps + start)
+    private fun AnimationSequence(steps: Long, block: suspend SequenceScope<Double>.() -> Unit) =
+        AnimationSequence(steps, sequence(block))
+
+    fun Linear(steps: Long) = AnimationSequence(steps) {
+        for (step in 0 until steps) yield(step / steps.toDouble())
     }
 
-    fun EaseInQuad(start: Int, final: Int, steps: Long) = EaseInQuad(start.toDouble(), final.toDouble(), steps)
-    fun EaseInQuad(start: Long, final: Long, steps: Long) = EaseInQuad(start.toDouble(), final.toDouble(), steps)
-    fun EaseInQuad(start: Double, final: Double, steps: Long) = AnimationSequence(steps) {
+    fun EaseInQuad(steps: Long) = AnimationSequence(steps) {
         for (step in 0 until steps) {
-            yield((final - start) * (step.toDouble() / steps).pow(2) + start)
+            yield((step/ steps.toDouble()).pow(2))
         }
     }
 
-    fun EaseOutQuad(start: Int, final: Int, steps: Long) = EaseOutQuad(start.toDouble(), final.toDouble(), steps)
-    fun EaseOutQuad(start: Long, final: Long, steps: Long) = EaseOutQuad(start.toDouble(), final.toDouble(), steps)
-    fun EaseOutQuad(start: Double, final: Double, steps: Long) = AnimationSequence(steps) {
+    fun EaseOutQuad(steps: Long) = AnimationSequence(steps) {
         var _step: Double
         for (step in 0 until steps) {
-            _step = step.toDouble() / steps
-            yield(-(final - start) * _step * (_step - 2) + start)
+            _step = step / steps.toDouble()
+            yield(-_step * (_step - 2))
         }
     }
 
-    fun EaseInOutQuad(start: Int, final: Int, steps: Long) = EaseInOutQuad(start.toDouble(), final.toDouble(), steps)
-    fun EaseInOutQuad(start: Long, final: Long, steps: Long) = EaseInOutQuad(start.toDouble(), final.toDouble(), steps)
-    fun EaseInOutQuad(start: Double, final: Double, steps: Long) = AnimationSequence(steps) {
+    fun EaseInOutQuad(steps: Long) = AnimationSequence(steps) {
         var _step: Double
         for (step in 0 until steps) {
-            _step = step * 2.0 / steps
+            _step = step * 2 / steps.toDouble()
             if (_step < 1) {
-                yield((final - start) / 2 * _step.pow(2) + start)
+                yield(0.5 * _step.pow(2))
             } else {
                 _step--
-                yield(-(final - start) / 2 * (_step * (_step - 2) - 1) + start)
+                yield(-0.5 * (_step * (_step - 2) - 1))
             }
         }
     }
