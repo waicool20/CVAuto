@@ -15,22 +15,28 @@ import kotlin.math.roundToInt
  */
 class DefaultTemplateMatcher : ITemplateMatcher {
     data class Settings(
-        /**
-         * Images get scaled down to this width while maintaining ratio during matching,
-         * A smaller value will lead to faster matches but with poorer accuracy.
-         */
-        var matchWidth: Double = 500.0,
+        private var _matchWidth: Double = 500.0,
         /**
          * Default threshold in case it isn't specified in the template
          */
         var defaultThreshold: Double = 0.9
-    )
+    ) {
+        /**
+         * Images get scaled down to this width while maintaining ratio during matching,
+         * A smaller value will lead to faster matches but with poorer accuracy.
+         */
+        var matchWidth: Double = _matchWidth
+            get() = _matchWidth
+            set(value) {
+                imageCache.clear()
+                field = value
+            }
+    }
 
     companion object {
         private val matchingAlgo = TemplateIntensityImage_MT(TemplateDiffSquaredNorm())
+        private val imageCache = mutableMapOf<ITemplate, GrayF32>()
     }
-
-    private val imageCache = mutableMapOf<ITemplate, GrayF32>()
 
     val settings = Settings()
 
