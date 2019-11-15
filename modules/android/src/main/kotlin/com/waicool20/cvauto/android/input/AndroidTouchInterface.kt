@@ -127,8 +127,8 @@ class AndroidTouchInterface private constructor(
     override fun touchMove(slot: Int, x: Int, y: Int) = synchronized(this) {
         val xChanged = _touches[slot].cursorX != x
         val yChanged = _touches[slot].cursorY != y
-        _touches[slot].cursorX = if (xChanged) x else _touches[slot].cursorX
-        _touches[slot].cursorY = if (yChanged) y else _touches[slot].cursorY
+        if (xChanged) _touches[slot].cursorX = x
+        if (yChanged) _touches[slot].cursorY = y
         if (_touches[slot].isTouching) {
             if (xChanged || yChanged) {
                 sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_SLOT, slot.toLong())
@@ -241,13 +241,13 @@ class AndroidTouchInterface private constructor(
         return when (event) {
             InputEvent.ABS_MT_POSITION_X -> {
                 val max = touchSpecs[event]?.maxValue ?: 1
-                ((coord / device.properties.displayWidth.toDouble()) * max).roundToInt()
+                ((coord / device.properties.displayWidth.toDouble()) * max).roundToLong()
             }
             InputEvent.ABS_MT_POSITION_Y -> {
                 val max = touchSpecs[event]?.maxValue ?: 1
-                ((coord / device.properties.displayHeight.toDouble()) * max).roundToInt()
+                ((coord / device.properties.displayHeight.toDouble()) * max).roundToLong()
             }
             else -> error("Unsupported event")
-        }.toLong()
+        }
     }
 }
