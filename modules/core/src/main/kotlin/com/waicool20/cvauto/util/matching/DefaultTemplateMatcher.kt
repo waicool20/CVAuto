@@ -19,7 +19,8 @@ class DefaultTemplateMatcher : ITemplateMatcher {
         /**
          * Default threshold in case it isn't specified in the template
          */
-        var defaultThreshold: Double = 0.9
+        var defaultThreshold: Double = 0.9,
+        var filterOverlap: Boolean = true
     ) {
         /**
          * Images get scaled down to this width while maintaining ratio during matching,
@@ -65,7 +66,7 @@ class DefaultTemplateMatcher : ITemplateMatcher {
         matcher.setTemplate(bTemplate, null, count)
         matcher.process()
 
-        return matcher.results.toList().mapNotNull {
+        val results = matcher.results.toList().mapNotNull {
             val adjustedScore = it.score + 1
             val threshold = template.threshold ?: settings.defaultThreshold
             if (adjustedScore < threshold) return@mapNotNull null
@@ -79,5 +80,22 @@ class DefaultTemplateMatcher : ITemplateMatcher {
                 adjustedScore
             )
         }
+        if (settings.filterOverlap) {
+            val resCopy = results.toMutableList()
+            for (r in results) {
+                for (r1 in results) {
+                    if (r == r1) continue
+                    if (r.rectangle.intersects(r1.rectangle)) {
+                        if (r.score < r1.score) {
+                            resCopy.remove(r)
+                        } else {
+                            resCopy.remove(r1)
+                        }
+                    }
+                }
+            }
+            return resCopy
+        }
+        return results
     }
 }
