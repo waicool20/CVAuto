@@ -5,7 +5,7 @@ import java.awt.Rectangle
 import java.awt.image.BufferedImage
 
 class CachedRegion<T : IDevice>(
-    val region: Region<T>
+    val region: Region<T>, parentCachedImage: BufferedImage? = null
 ) : Region<T>(
     region.x,
     region.y,
@@ -14,11 +14,11 @@ class CachedRegion<T : IDevice>(
     region.device,
     region.screen
 ) {
-    private val cachedImage = region.capture()
-    override fun capture(): BufferedImage = cachedImage
+    private val cachedImage = parentCachedImage ?: region.capture()
+    override fun capture(): BufferedImage = cachedImage.getSubimage(x, y, width, height)
 
-    override fun mapRectangleToRegion(rect: Rectangle): Region<T> =
-        region.mapRectangleToRegion(rect)
+    override fun mapRectangleToRegion(rect: Rectangle) =
+        CachedRegion(region.mapRectangleToRegion(rect), cachedImage)
 
     override fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<T> =
         region.mapFindResultToRegion(result)
@@ -28,4 +28,4 @@ class CachedRegion<T : IDevice>(
     override fun type(text: String) = region.type(text)
 }
 
-fun <T: IDevice> Region<T>.asCachedRegion(): CachedRegion<T> = CachedRegion(this)
+fun <T : IDevice> Region<T>.asCachedRegion(): CachedRegion<T> = CachedRegion(this)
