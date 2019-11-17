@@ -1,7 +1,7 @@
 package com.waicool20.cvauto.core
 
-import com.waicool20.cvauto.core.template.ITemplate
 import com.waicool20.cvauto.core.input.IInput
+import com.waicool20.cvauto.core.template.ITemplate
 import com.waicool20.cvauto.util.area
 import com.waicool20.cvauto.util.asGrayF32
 import com.waicool20.cvauto.util.matching.DefaultTemplateMatcher
@@ -43,6 +43,7 @@ abstract class Region<T : IDevice>(
 
     companion object {
         val DEFAULT_MATCHER = DefaultTemplateMatcher()
+        var FIND_REFRESH: Millis = 32
     }
 
     /**
@@ -136,7 +137,10 @@ abstract class Region<T : IDevice>(
      * @return Results of the find operation
      */
     fun findBest(template: ITemplate, count: Int): List<RegionFindResult<T>> {
-        return matcher.findBest(template, this.capture().asGrayF32(), count).map(::mapFindResultToRegion)
+        val image = _lastScreenCapture?.let { (lastTime, img) ->
+            if (System.currentTimeMillis() - lastTime > FIND_REFRESH) capture() else img
+        } ?: capture()
+        return matcher.findBest(template, image.asGrayF32(), count).map(::mapFindResultToRegion)
     }
 
     /**
@@ -250,7 +254,12 @@ abstract class Region<T : IDevice>(
      * @param timeout When timeout is reached this function will stop clicking, use -1 to disable timeout
      * @param condition Boolean condition function
      */
-    suspend fun clickWhile(random: Boolean = true, period: Millis = 100, timeout: Millis = -1, condition: (Region<T>) -> Boolean) {
+    suspend fun clickWhile(
+        random: Boolean = true,
+        period: Millis = 100,
+        timeout: Millis = -1,
+        condition: (Region<T>) -> Boolean
+    ) {
         if (timeout > 0) {
             withTimeoutOrNull(timeout) {
                 while (isActive && condition(this@Region)) {
