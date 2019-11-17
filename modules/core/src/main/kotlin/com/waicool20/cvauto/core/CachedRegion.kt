@@ -4,7 +4,11 @@ import com.waicool20.cvauto.util.matching.ITemplateMatcher
 import java.awt.Rectangle
 import java.awt.image.BufferedImage
 
-class CachedRegion<T : IDevice>(
+/**
+ * Cached region, this variant of region will capture the region on creation
+ * and cache it, [capture] will always return this cached image.
+ * Sub-regions created from this region will also use this cached image for their operations
+ */
 class CachedRegion<T : IDevice> private constructor(
     val region: Region<T>, parentCachedImage: BufferedImage? = null
 ) : Region<T>(
