@@ -46,6 +46,11 @@ abstract class Region<T : IDevice>(
     }
 
     /**
+     * Last screen capture, should only be mutated by top-level screen regions
+     */
+    protected var _lastScreenCapture: Pair<Millis, BufferedImage>? = null
+
+    /**
      * Template matcher that will be used for find operations, can be overridden with custom matcher,
      * otherwise [Region.DEFAULT_MATCHER] will be used
      */
@@ -73,6 +78,29 @@ abstract class Region<T : IDevice>(
      * @return New [Region] with mapped result
      */
     abstract fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<T>
+
+    /**
+     * Gets the last screen capture of the region
+     *
+     * @return null if no capture was done before
+     */
+    fun getLastScreenCapture(): BufferedImage? {
+        val screen = device.screens.getOrNull(screen)
+        return if (this == screen) {
+            _lastScreenCapture?.second
+        } else {
+            screen?.getLastScreenCapture()
+        }
+    }
+
+    /**
+     * Gets the last capture of this region
+     *
+     * @return null if not capture was done before
+     */
+    fun getLastCapture(): BufferedImage? {
+        return getLastScreenCapture()?.getSubimage(x, y, width, height)
+    }
 
     /**
      * Gets a smaller region that is contained in this region.

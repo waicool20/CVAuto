@@ -56,24 +56,30 @@ class AndroidRegion(
     val captureFPS get() = _captureFPS
 
     override fun capture(): BufferedImage {
-        if (fastCaptureMode) return doFastCapture().getSubimage(x, y, width, height)
-        var throwable: Throwable? = null
-        for (i in 0 until 3) {
-            try {
-                val inputStream = DataInputStream(device.execute("screencap").inputStream)
-                val width = inputStream.read() or (inputStream.read() shl 8) or
-                        (inputStream.read() shl 16) or (inputStream.read() shl 24)
-                val height = inputStream.read() or (inputStream.read() shl 8) or
-                        (inputStream.read() shl 16) or (inputStream.read() shl 24)
-                inputStream.skip(8)
-                return createByteRGBBufferedImage(width, height, true).apply {
-                    inputStream.readFully((raster.dataBuffer as DataBufferByte).data)
-                }.getSubimage(x, y, this.width, this.height)
-            } catch (t: Throwable) {
-                throwable = t
+        val capture = if (fastCaptureMode) {
+            doFastCapture().getSubimage(x, y, width, height)
+        } else {
+            var throwable: Throwable? = null
+            for (i in 0 until 3) {
+                try {
+                    val inputStream = DataInputStream(device.execute("screencap").inputStream)
+                    val width = inputStream.read() or (inputStream.read() shl 8) or
+                            (inputStream.read() shl 16) or (inputStream.read() shl 24)
+                    val height = inputStream.read() or (inputStream.read() shl 8) or
+                            (inputStream.read() shl 16) or (inputStream.read() shl 24)
+                    inputStream.skip(8)
+                    createByteRGBBufferedImage(width, height, true).apply {
+                        inputStream.readFully((raster.dataBuffer as DataBufferByte).data)
+                    }.getSubimage(x, y, this.width, this.height)
+                } catch (t: Throwable) {
+                    throwable = t
+                }
             }
+            throw throwable ?: error("Could not capture region due to unknown error")
         }
-        throw throwable ?: error("Could not capture region due to unknown error")
+
+        if (device.screens.contains(this)) _lastScreenCapture = System.currentTimeMillis() to capture
+        return capture
     }
 
     override fun mapRectangleToRegion(rect: Rectangle): Region<AndroidDevice> {

@@ -23,7 +23,9 @@ class DesktopRegion(
     }
 
     override fun capture(): BufferedImage {
-        return robot.createScreenCapture(this).getSubimage(x, y, width, height)
+        val capture = robot.createScreenCapture(this).getSubimage(x, y, width, height)
+        if (device.screens.contains(this)) _lastScreenCapture = System.currentTimeMillis() to capture
+        return capture
     }
 
     override fun mapRectangleToRegion(rect: Rectangle): Region<Desktop> {
