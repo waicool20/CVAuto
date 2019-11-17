@@ -5,6 +5,7 @@ import java.awt.Rectangle
 import java.awt.image.BufferedImage
 
 class CachedRegion<T : IDevice>(
+class CachedRegion<T : IDevice> private constructor(
     val region: Region<T>, parentCachedImage: BufferedImage? = null
 ) : Region<T>(
     region.x,
@@ -14,6 +15,8 @@ class CachedRegion<T : IDevice>(
     region.device,
     region.screen
 ) {
+    constructor(region: Region<T>): this(region, null)
+
     private val cachedImage = parentCachedImage ?: region.capture()
     override fun capture(): BufferedImage = cachedImage.getSubimage(x, y, width, height)
 
