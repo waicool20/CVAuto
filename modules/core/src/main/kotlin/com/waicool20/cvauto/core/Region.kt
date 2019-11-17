@@ -21,14 +21,17 @@ import kotlin.random.Random
  * @param width Width of the region
  * @param height Height of the region
  * @param device Device that the region belongs to
+ * @param screen Screen index
  * @property device Device that the region belongs to
+ * @property screen Screen index
  */
 abstract class Region<T : IDevice>(
     x: Pixels,
     y: Pixels,
     width: Pixels,
     height: Pixels,
-    val device: T
+    val device: T,
+    val screen: Int
 ) : Rectangle(x, y, width, height) {
     /**
      * Represents the results of a find operation run on the device

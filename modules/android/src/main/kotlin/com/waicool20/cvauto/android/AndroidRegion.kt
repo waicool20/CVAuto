@@ -20,8 +20,9 @@ class AndroidRegion(
     y: Pixels,
     width: Pixels,
     height: Pixels,
-    device: AndroidDevice
-) : Region<AndroidDevice>(x, y, width, height, device) {
+    device: AndroidDevice,
+    screen: Int
+) : Region<AndroidDevice>(x, y, width, height, device, screen) {
     companion object {
         private val _fastCaptureMode = AtomicBoolean(false)
         private var screenRecordProcess: Process? = null
@@ -76,7 +77,7 @@ class AndroidRegion(
     }
 
     override fun mapRectangleToRegion(rect: Rectangle): Region<AndroidDevice> {
-        return AndroidRegion(rect.x + x, rect.y + y, rect.width, rect.height, device)
+        return AndroidRegion(rect.x + x, rect.y + y, rect.width, rect.height, device, screen)
     }
 
     override fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<AndroidDevice> {
@@ -135,7 +136,7 @@ class AndroidRegion(
     }
 
     override fun clone(): Any {
-        return AndroidRegion(x, y, width, height, device)
+        return AndroidRegion(x, y, width, height, device, screen)
     }
 
     private fun doFastCapture(): BufferedImage {

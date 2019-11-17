@@ -53,7 +53,7 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
 
     override val input = AndroidInput(this)
     override val screens: List<AndroidRegion> =
-        listOf(AndroidRegion(0, 0, properties.displayWidth, properties.displayHeight, this))
+        listOf(AndroidRegion(0, 0, properties.displayWidth, properties.displayHeight, this, 0))
 
     /**
      * Checks if the showing pointer information

@@ -15,8 +15,9 @@ class DesktopRegion(
     y: Pixels,
     width: Pixels,
     height: Pixels,
-    device: Desktop
-) : Region<Desktop>(x, y, width, height, device) {
+    device: Desktop,
+    screen: Int
+) : Region<Desktop>(x, y, width, height, device, screen) {
     companion object {
         private val robot by lazy { Robot() }
     }
@@ -26,7 +27,7 @@ class DesktopRegion(
     }
 
     override fun mapRectangleToRegion(rect: Rectangle): Region<Desktop> {
-        return DesktopRegion(rect.x + x, rect.y + y, rect.width, rect.height, device)
+        return DesktopRegion(rect.x + x, rect.y + y, rect.width, rect.height, device, screen)
     }
 
     override fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<Desktop> {
@@ -42,6 +43,6 @@ class DesktopRegion(
     }
 
     override fun clone(): Any {
-        return DesktopRegion(x, y, width, height, device)
+        return DesktopRegion(x, y, width, height, device, screen)
     }
 }

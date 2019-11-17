@@ -13,9 +13,9 @@ object Desktop : IDevice {
     override val screens: List<DesktopRegion>
         get() = GraphicsEnvironment.getLocalGraphicsEnvironment().run {
             screenDevices.sortedByDescending { it == defaultScreenDevice }
-                .map {
-                    val r = it.defaultConfiguration.bounds
-                    DesktopRegion(r.x, r.y, r.width, r.height, this@Desktop)
+                .mapIndexed { i, device ->
+                    val r = device.defaultConfiguration.bounds
+                    DesktopRegion(r.x, r.y, r.width, r.height, this@Desktop, i)
                 }
         }
 }
