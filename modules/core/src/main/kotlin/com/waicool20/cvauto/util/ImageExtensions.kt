@@ -23,9 +23,14 @@ fun BufferedImage.asGrayF32(): GrayF32 = ConvertBufferedImage.convertFrom(this, 
 /**
  * Scales the image size with [scaleFactor]
  *
+ * @param scaleFactor Scaling factor
  * @return New scaled image
+ *
+ * @throws IllegalArgumentException if scale factor is negative
  */
 fun GrayF32.scale(scaleFactor: Double): GrayF32 {
+    if (scaleFactor == 1.0) return this
+    require(scaleFactor > 0.0) { "scaleFactor must be larger than 0"}
     val output = createNew((width * scaleFactor).roundToInt(), (height * scaleFactor).roundToInt())
     FDistort(this, output).scaleExt().apply()
     return output
