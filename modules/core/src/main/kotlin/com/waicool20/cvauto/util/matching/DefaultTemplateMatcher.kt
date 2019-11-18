@@ -4,6 +4,7 @@ import boofcv.alg.feature.detect.template.TemplateMatching
 import boofcv.struct.image.GrayF32
 import com.waicool20.cvauto.core.template.ITemplate
 import com.waicool20.cvauto.util.asGrayF32
+import com.waicool20.cvauto.util.blurred
 import com.waicool20.cvauto.util.scale
 import java.awt.Rectangle
 import kotlin.math.roundToInt
@@ -19,7 +20,14 @@ class DefaultTemplateMatcher : ITemplateMatcher {
          * Default threshold in case it isn't specified in the template
          */
         var defaultThreshold: Double = 0.9,
-        var filterOverlap: Boolean = true
+        /**
+         * Filter overlapping match results
+         */
+        var filterOverlap: Boolean = true,
+        /**
+         * Non-zero value will let the matcher blur the image before matching,
+         */
+        var blurRadius: Int = 2
     ) {
         /**
          * Images get scaled down to this width while maintaining ratio during matching,
@@ -51,10 +59,12 @@ class DefaultTemplateMatcher : ITemplateMatcher {
         val scaleFactor = if (settings.matchWidth > 0) {
             settings.matchWidth / image.width
         } else 1.0
-        val scaledImage = image.scale(scaleFactor)
+        val scaledImage = image.scale(scaleFactor).blurred(settings.blurRadius)
 
         val lTemplate = template.load()
-        val bTemplate = imageCache.getOrPut(template) { lTemplate.asGrayF32().scale(scaleFactor) }
+        val bTemplate = imageCache.getOrPut(template) {
+            lTemplate.asGrayF32().scale(scaleFactor).blurred(settings.blurRadius)
+        }
 
         val matcher = TemplateMatching(matchingAlgo)
         matcher.setImage(scaledImage)
