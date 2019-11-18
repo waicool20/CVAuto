@@ -1,6 +1,5 @@
 package com.waicool20.cvauto.util.matching
 
-import boofcv.alg.feature.detect.template.TemplateIntensityImage_MT
 import boofcv.alg.feature.detect.template.TemplateMatching
 import boofcv.struct.image.GrayF32
 import com.waicool20.cvauto.core.template.ITemplate
@@ -26,11 +25,11 @@ class DefaultTemplateMatcher : ITemplateMatcher {
          * Images get scaled down to this width while maintaining ratio during matching,
          * A smaller value will lead to faster matches but with poorer accuracy.
          */
-        var matchWidth: Double = _matchWidth
+        var matchWidth: Double
             get() = _matchWidth
             set(value) {
+                _matchWidth = value
                 imageCache.clear()
-                field = value
             }
     }
 
