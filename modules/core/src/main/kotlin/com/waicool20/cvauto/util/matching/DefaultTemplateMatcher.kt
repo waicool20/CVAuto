@@ -35,7 +35,8 @@ class DefaultTemplateMatcher : ITemplateMatcher {
     }
 
     companion object {
-        private val matchingAlgo = TemplateIntensityImage_MT(TemplateDiffSquaredNorm())
+        // TODO Template Image equal size bug, https://github.com/lessthanoptimal/BoofCV/issues/144
+        private val matchingAlgo = DefaultTemplateIntensityImage(TemplateDiffSquaredNorm())
         private val imageCache = mutableMapOf<ITemplate, GrayF32>()
     }
 
