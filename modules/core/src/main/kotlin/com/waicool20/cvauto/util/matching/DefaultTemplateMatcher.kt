@@ -14,7 +14,7 @@ import kotlin.math.roundToInt
  */
 class DefaultTemplateMatcher : ITemplateMatcher {
     data class Settings(
-        private var _matchWidth: Double = 500.0,
+        private var _matchWidth: Double = 0.0,
         /**
          * Default threshold in case it isn't specified in the template
          */
@@ -52,7 +52,7 @@ class DefaultTemplateMatcher : ITemplateMatcher {
             settings.matchWidth / image.width
         } else 1.0
         val scaledImage = image.scale(scaleFactor)
-        
+
         val lTemplate = template.load()
         val bTemplate = imageCache.getOrPut(template) { lTemplate.asGrayF32().scale(scaleFactor) }
 
