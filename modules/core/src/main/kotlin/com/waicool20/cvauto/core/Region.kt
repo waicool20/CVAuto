@@ -51,11 +51,17 @@ abstract class Region<T : IDevice>(
      */
     protected var _lastScreenCapture: Pair<Millis, BufferedImage>? = null
 
+    private var _matcher: ITemplateMatcher? = null
+
     /**
      * Template matcher that will be used for find operations, can be overridden with custom matcher,
      * otherwise [Region.DEFAULT_MATCHER] will be used
      */
-    var matcher = DEFAULT_MATCHER
+    var matcher: ITemplateMatcher
+        get() = _matcher ?: DEFAULT_MATCHER
+        set(value) {
+            _matcher = value
+        }
 
     /**
      * Captures the image of the region
