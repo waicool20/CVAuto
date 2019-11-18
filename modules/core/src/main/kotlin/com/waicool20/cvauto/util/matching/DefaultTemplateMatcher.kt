@@ -3,6 +3,7 @@ package com.waicool20.cvauto.util.matching
 import boofcv.alg.feature.detect.template.TemplateMatching
 import boofcv.struct.image.GrayF32
 import com.waicool20.cvauto.core.template.ITemplate
+import com.waicool20.cvauto.util.matching.ITemplateMatcher.FindResult
 import com.waicool20.cvauto.util.asGrayF32
 import com.waicool20.cvauto.util.blurred
 import com.waicool20.cvauto.util.scale
@@ -51,11 +52,11 @@ class DefaultTemplateMatcher : ITemplateMatcher {
 
     val settings = Settings()
 
-    override fun findBest(template: ITemplate, image: GrayF32): ITemplateMatcher.FindResult? {
+    override fun findBest(template: ITemplate, image: GrayF32): FindResult? {
         return findBest(template, image, 1).firstOrNull()
     }
 
-    override fun findBest(template: ITemplate, image: GrayF32, count: Int): List<ITemplateMatcher.FindResult> {
+    override fun findBest(template: ITemplate, image: GrayF32, count: Int): List<FindResult> {
         val scaleFactor = if (settings.matchWidth > 0) {
             settings.matchWidth / image.width
         } else 1.0
@@ -76,7 +77,7 @@ class DefaultTemplateMatcher : ITemplateMatcher {
             val adjustedScore = it.score + 1
             val threshold = template.threshold ?: settings.defaultThreshold
             if (adjustedScore < threshold) return@mapNotNull null
-            ITemplateMatcher.FindResult(
+            FindResult(
                 Rectangle(
                     (it.x / scaleFactor).roundToInt(),
                     (it.y / scaleFactor).roundToInt(),
@@ -86,22 +87,24 @@ class DefaultTemplateMatcher : ITemplateMatcher {
                 adjustedScore
             )
         }
-        if (settings.filterOverlap) {
-            val resCopy = results.toMutableList()
-            for (r in results) {
-                for (r1 in results) {
-                    if (r == r1) continue
-                    if (r.rectangle.intersects(r1.rectangle)) {
-                        if (r.score < r1.score) {
-                            resCopy.remove(r)
-                        } else {
-                            resCopy.remove(r1)
-                        }
+        if (settings.filterOverlap) return results.removeOverlaps()
+        return results
+    }
+
+    private fun List<FindResult>.removeOverlaps(): List<FindResult> {
+        val copy = toMutableList()
+        for (r in copy) {
+            for (r1 in copy) {
+                if (r == r1) continue
+                if (r.rectangle.intersects(r1.rectangle)) {
+                    if (r.score < r1.score) {
+                        copy.remove(r)
+                    } else {
+                        copy.remove(r1)
                     }
                 }
             }
-            return resCopy
         }
-        return results
+        return copy
     }
 }
