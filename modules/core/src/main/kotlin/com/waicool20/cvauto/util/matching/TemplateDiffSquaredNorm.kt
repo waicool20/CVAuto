@@ -41,10 +41,8 @@ class TemplateDiffSquaredNorm : TemplateIntensityImage.EvaluatorMethod<GrayF32> 
             var imageIndex = image.startIndex + (tl_y + y) * image.stride + tl_x
             var templateIndex = template.startIndex + y * template.stride
             for (x in 0 until template.width) {
-                // TODO Two checks below shouldn't be required but sometimes ArraysOutOfBoundsException pops up
-                // TODO Needs investigation, temporary fix
-                if (imageIndex > image.data.lastIndex) break@loop
-                if (templateIndex > template.data.lastIndex) break@loop
+                // AraysOutOfBoundsException may occur in a non-thread safe environment
+                // Make sure image and template stay consistent if this is shared among threads
                 val iData = image.data[imageIndex++]
                 val tData = template.data[templateIndex++]
                 val error = tData - iData
