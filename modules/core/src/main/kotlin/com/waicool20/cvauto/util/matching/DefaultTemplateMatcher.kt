@@ -24,6 +24,8 @@ class DefaultTemplateMatcher : ITemplateMatcher {
         /**
          * Images get scaled down to this width while maintaining ratio during matching,
          * A smaller value will lead to faster matches but with poorer accuracy.
+         * Set this to 0 or negative number to disable
+         *
          */
         var matchWidth: Double
             get() = _matchWidth
@@ -46,17 +48,11 @@ class DefaultTemplateMatcher : ITemplateMatcher {
     }
 
     override fun findBest(template: ITemplate, image: GrayF32, count: Int): List<ITemplateMatcher.FindResult> {
-        val scaleFactor: Double
-        val scaledImage: GrayF32
-
-        if (image.width > settings.matchWidth) {
-            scaleFactor = settings.matchWidth / image.width
-            scaledImage = image.scale(scaleFactor)
-        } else {
-            scaleFactor = 1.0
-            scaledImage = image
-        }
-
+        val scaleFactor = if (settings.matchWidth > 0) {
+            settings.matchWidth / image.width
+        } else 1.0
+        val scaledImage = image.scale(scaleFactor)
+        
         val lTemplate = template.load()
         val bTemplate = imageCache.getOrPut(template) { lTemplate.asGrayF32().scale(scaleFactor) }
 
