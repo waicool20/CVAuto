@@ -181,3 +181,4 @@ gradle-app.setting
 # End of https://www.gitignore.io/api/linux,macos,gradle,windows,intellij
 
 test-assets
+**/test/kotlin/tmp
