@@ -3,10 +3,8 @@ package com.waicool20.cvauto.util.matching
 import boofcv.alg.feature.detect.template.TemplateMatching
 import boofcv.struct.image.GrayF32
 import com.waicool20.cvauto.core.template.ITemplate
+import com.waicool20.cvauto.util.*
 import com.waicool20.cvauto.util.matching.ITemplateMatcher.FindResult
-import com.waicool20.cvauto.util.asGrayF32
-import com.waicool20.cvauto.util.blurred
-import com.waicool20.cvauto.util.scale
 import java.awt.Rectangle
 import kotlin.math.roundToInt
 
@@ -37,37 +35,62 @@ class DefaultTemplateMatcher : ITemplateMatcher {
 
     override fun findBest(template: ITemplate, image: GrayF32, count: Int): List<FindResult> {
         val scaleFactor = if (settings.matchWidth > 0) {
-            settings.matchWidth / image.width
+            settings.matchWidth.toDouble() / image.width
         } else 1.0
         val scaledImage = image.scale(scaleFactor).blurred(settings.blurRadius)
 
-        val lTemplate = template.load()
-        val bTemplate = imageCache.getOrPut(template) {
-            lTemplate.asGrayF32().scale(scaleFactor).blurred(settings.blurRadius)
+        val templateF32 = imageCache.getOrPut(template) { template.load().asGrayF32() }
+        val templateF32Scaled = templateF32.scale(scaleFactor).blurred(settings.blurRadius)
+
+        val threshold = template.threshold ?: settings.defaultThreshold
+        var results = doMatch(templateF32Scaled, scaledImage, count)
+            .getFindResults(threshold, scaleFactor, templateF32.width, templateF32.height)
+
+        if (scaleFactor != 1.0) {
+            val bounds = Rectangle(0, 0, image.width, image.height)
+            // Filter really bad results
+            results = results.filter { it.score > threshold * 0.75 }
+                // Get a rectangle representing the approximate match area and grow it to allow for some error
+                .map { it.rectangle.apply { grow(50, 50) }.cropIntoRect(bounds) }
+                // Map it to the image
+                .map { it to image.subimage(it.x1, it.y1, it.x2, it.y2) }
+                // Do the fine match using the subimage
+                .flatMap { (subRect, subImage) ->
+                    doMatch(templateF32, subImage, 1)
+                        .getFindResults(threshold, 1.0, templateF32.width, templateF32.height)
+                        .onEach {
+                            it.rectangle.x = it.rectangle.x + subRect.x
+                            it.rectangle.y = it.rectangle.y + subRect.y
+                        }
+                }
         }
 
-        val matcher = TemplateMatching(matchingAlgo)
-        matcher.setImage(scaledImage)
-        //TODO Support Masks?
-        matcher.setTemplate(bTemplate, null, count)
-        matcher.process()
+        return if (settings.filterOverlap) results.removeOverlaps() else results
+    }
 
-        val results = matcher.results.toList().mapNotNull {
+    private fun doMatch(template: GrayF32, image: GrayF32, count: Int): TemplateMatching<GrayF32> {
+        return TemplateMatching(matchingAlgo).apply {
+            setImage(image)
+            //TODO Support Masks?
+            setTemplate(template, null, count)
+            process()
+        }
+    }
+
+    private fun TemplateMatching<GrayF32>.getFindResults(
+        threshold: Double,
+        scaleFactor: Double,
+        width: Int,
+        height: Int
+    ): List<FindResult> {
+        return results.toList().mapNotNull {
             val adjustedScore = it.score + 1
-            val threshold = template.threshold ?: settings.defaultThreshold
             if (adjustedScore < threshold) return@mapNotNull null
             FindResult(
-                Rectangle(
-                    (it.x / scaleFactor).roundToInt(),
-                    (it.y / scaleFactor).roundToInt(),
-                    lTemplate.width,
-                    lTemplate.height
-                ),
+                Rectangle((it.x / scaleFactor).roundToInt(), (it.y / scaleFactor).roundToInt(), width, height),
                 adjustedScore
             )
         }
-        if (settings.filterOverlap) return results.removeOverlaps()
-        return results
     }
 
     private fun List<FindResult>.removeOverlaps(): List<FindResult> {
