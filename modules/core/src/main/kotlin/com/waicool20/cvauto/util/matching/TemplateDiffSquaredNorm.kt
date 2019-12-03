@@ -33,9 +33,9 @@ class TemplateDiffSquaredNorm : TemplateIntensityImage.EvaluatorMethod<GrayF32> 
     }
 
     override fun evaluate(tl_x: Int, tl_y: Int): Float {
-        var total = 0f
-        var iTotal = 0f
-        var tTotal = 0f
+        var total = 0.0
+        var iTotal = 0.0
+        var tTotal = 0.0
 
         loop@for (y in 0 until template.height) {
             var imageIndex = image.startIndex + (tl_y + y) * image.stride + tl_x
@@ -52,7 +52,7 @@ class TemplateDiffSquaredNorm : TemplateIntensityImage.EvaluatorMethod<GrayF32> 
             }
         }
 
-        return -total / sqrt(iTotal * tTotal)
+        return (total / sqrt(iTotal * tTotal)).toFloat()
     }
 
     override fun evaluateMask(tl_x: Int, tl_y: Int): Float {
