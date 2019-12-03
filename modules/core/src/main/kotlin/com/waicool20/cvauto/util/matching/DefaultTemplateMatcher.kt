@@ -15,31 +15,10 @@ import kotlin.math.roundToInt
  * [TemplateDiffSquaredNorm]
  */
 class DefaultTemplateMatcher : ITemplateMatcher {
-    data class Settings(
-        private var _matchWidth: Double = 0.0,
-        /**
-         * Default threshold in case it isn't specified in the template
-         */
-        var defaultThreshold: Double = 0.9,
-        /**
-         * Filter overlapping match results
-         */
-        var filterOverlap: Boolean = true,
-        /**
-         * Non-zero value will let the matcher blur the image before matching,
-         */
-        var blurRadius: Int = 2
-    ) {
-        /**
-         * Images get scaled down to this width while maintaining ratio during matching,
-         * A smaller value will lead to faster matches but with poorer accuracy.
-         * Set this to 0 or negative number to disable
-         *
-         */
-        var matchWidth: Double
-            get() = _matchWidth
+    class Settings : ITemplateMatcher.Settings() {
+        override var matchWidth = 0
             set(value) {
-                _matchWidth = value
+                field = value
                 imageCache.clear()
             }
     }
@@ -50,7 +29,7 @@ class DefaultTemplateMatcher : ITemplateMatcher {
         private val imageCache = mutableMapOf<ITemplate, GrayF32>()
     }
 
-    val settings = Settings()
+    override val settings = Settings()
 
     override fun findBest(template: ITemplate, image: GrayF32): FindResult? {
         return findBest(template, image, 1).firstOrNull()
