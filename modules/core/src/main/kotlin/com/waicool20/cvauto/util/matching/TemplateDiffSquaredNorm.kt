@@ -61,4 +61,5 @@ class TemplateDiffSquaredNorm : TemplateIntensityImage.EvaluatorMethod<GrayF32> 
 
 
     override fun isBorderProcessed() = false
+    override fun isMaximize() = false
 }
