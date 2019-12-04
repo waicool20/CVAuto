@@ -6,7 +6,10 @@ import com.waicool20.cvauto.util.area
 import com.waicool20.cvauto.util.asGrayF32
 import com.waicool20.cvauto.util.matching.DefaultTemplateMatcher
 import com.waicool20.cvauto.util.matching.ITemplateMatcher
-import kotlinx.coroutines.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import java.awt.Point
 import java.awt.Rectangle
 import java.awt.image.BufferedImage
@@ -232,8 +235,6 @@ abstract class Region<T : IDevice>(
     }
 
     fun randomPoint(): Point {
-        GlobalScope.launch {
-        }
         var dx = Random.nextDouble(width * 0.45)
         var dy = Random.nextDouble(height * 0.45)
         if (Random.nextBoolean()) dx = -dx
@@ -279,6 +280,27 @@ abstract class Region<T : IDevice>(
                 delay(period)
             }
         }
+    }
+
+    /**
+     * Clicks the template if it exists, while a condition holds true
+     * For more complex operations please use the devices respective [IInput]
+     *
+     * @param template Template to use
+     * @param random Whether or not this clicks a random point in this region, defaults true
+     * @param period Delay between each check/click
+     * @param timeout When timeout is reached this function will stop clicking, use -1 to disable timeout
+     * @param condition Boolean condition function
+     */
+    suspend fun clickTemplateWhile(
+        template: ITemplate,
+        random: Boolean = true,
+        period: Millis = 100,
+        timeout: Millis = -1,
+        condition: (Region<T>, ITemplate) -> Boolean
+    ) {
+        val r = findBest(template)?.region ?: return
+        r.clickWhile(random, period, timeout) { condition(this, template) }
     }
 
     /**
