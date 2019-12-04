@@ -265,17 +265,17 @@ abstract class Region<T : IDevice>(
         random: Boolean = true,
         period: Millis = 100,
         timeout: Millis = -1,
-        condition: (Region<T>) -> Boolean
+        condition: Region<T>.() -> Boolean
     ) {
         if (timeout > 0) {
             withTimeoutOrNull(timeout) {
-                while (isActive && condition(this@Region)) {
+                while (isActive && this@Region.condition()) {
                     click(random)
                     delay(period)
                 }
             }
         } else {
-            while (condition(this@Region)) {
+            while (this.condition()) {
                 click(random)
                 delay(period)
             }
@@ -297,7 +297,7 @@ abstract class Region<T : IDevice>(
         random: Boolean = true,
         period: Millis = 100,
         timeout: Millis = -1,
-        condition: (Region<T>, ITemplate) -> Boolean
+        condition: Region<T>.(ITemplate) -> Boolean
     ) {
         val r = findBest(template)?.region ?: return
         r.clickWhile(random, period, timeout) { condition(this, template) }
