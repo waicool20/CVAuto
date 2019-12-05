@@ -58,3 +58,11 @@ class TemplateCosEffNorm : EvaluatorMethodAdapter() {
         return (-total / sqrt(iTotal * tTotal)).toFloat()
     }
 }
+
+inline fun <T> ITemplateMatcher.useCosEffNorm(block: () -> T): T {
+    val oldEval = settings.evaluator
+    settings.evaluator = { TemplateCosEffNorm() }
+    val value = block()
+    settings.evaluator = oldEval
+    return value
+}

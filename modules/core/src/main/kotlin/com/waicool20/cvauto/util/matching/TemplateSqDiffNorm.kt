@@ -29,3 +29,11 @@ class TemplateSqDiffNorm : EvaluatorMethodAdapter() {
         return (total / sqrt(iTotal * tTotal)).toFloat() - 1
     }
 }
+
+inline fun <T> ITemplateMatcher.useSqDiffNorm(block: () -> T): T {
+    val oldEval = settings.evaluator
+    settings.evaluator = { TemplateSqDiffNorm() }
+    val value = block()
+    settings.evaluator = oldEval
+    return value
+}
