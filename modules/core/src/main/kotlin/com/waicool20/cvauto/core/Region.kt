@@ -123,9 +123,9 @@ abstract class Region<T : IDevice>(
      * @throws IllegalArgumentException if new sub region is not contained in the current region
      */
     fun subRegion(x: Pixels, y: Pixels, width: Pixels, height: Pixels): Region<T> {
-        val r = Rectangle(this.x + x, this.y + y, width, height)
+        val r = mapRectangleToRegion(Rectangle(x, y, width, height))
         require(contains(r)) { "Sub-region must be smaller than the current region" }
-        return mapRectangleToRegion(r)
+        return r
     }
 
     /**
