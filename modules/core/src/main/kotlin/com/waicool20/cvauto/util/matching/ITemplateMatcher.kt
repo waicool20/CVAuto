@@ -36,7 +36,11 @@ interface ITemplateMatcher {
         /**
          * Non-zero value will let the matcher blur the image before matching,
          */
-        open var blurRadius: Int = 2
+        open var blurRadius: Int = 2,
+        /**
+         * Matching algorithm to use
+         */
+        open var evaluator: () -> EvaluatorMethodAdapter = { TemplateCosEffNorm() }
     )
 
     val settings: Settings
