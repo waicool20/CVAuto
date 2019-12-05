@@ -11,7 +11,7 @@ import kotlin.math.roundToInt
 
 /**
  * Default template matcher, good for most purposes. Uses the normalised squared difference algorithm from
- * [TemplateDiffSquaredNorm]
+ * [TemplateSqDiffNorm]
  */
 class DefaultTemplateMatcher : ITemplateMatcher {
     class Settings : ITemplateMatcher.Settings() {
