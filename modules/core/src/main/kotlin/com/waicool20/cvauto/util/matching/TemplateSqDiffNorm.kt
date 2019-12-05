@@ -7,7 +7,7 @@ import kotlin.math.sqrt
 /**
  * Implementation of matching algorithm equivalent to OpenCVs CV_TM_SQDIFF_NORMED template matcher
  */
-class TemplateDiffSquaredNorm : TemplateIntensityImage.EvaluatorMethod<GrayF32> {
+class TemplateSqDiffNorm : TemplateIntensityImage.EvaluatorMethod<GrayF32> {
     companion object {
         /*
         Reflection needed since these fields are package protected in the library,
