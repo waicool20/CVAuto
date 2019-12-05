@@ -94,19 +94,19 @@ class DefaultTemplateMatcher : ITemplateMatcher {
     }
 
     private fun List<FindResult>.removeOverlaps(): List<FindResult> {
-        val copy = toMutableList()
-        for (r in copy) {
-            for (r1 in copy) {
-                if (r == r1) continue
-                if (r.rectangle.intersects(r1.rectangle)) {
-                    if (r.score < r1.score) {
-                        copy.remove(r)
+        val toRemoveIndices = mutableListOf<Int>()
+        for ((i, r1) in this.withIndex()) {
+            for ((j, r2) in this.withIndex()) {
+                if (i == j) continue
+                if (r1.rectangle.intersects(r2.rectangle)) {
+                    if (r1.score < r2.score) {
+                        toRemoveIndices.add(i)
                     } else {
-                        copy.remove(r1)
+                        toRemoveIndices.add(j)
                     }
                 }
             }
         }
-        return copy
+        return filterIndexed { i, _ -> !toRemoveIndices.contains(i) }
     }
 }
