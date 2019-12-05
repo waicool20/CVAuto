@@ -85,11 +85,10 @@ class DefaultTemplateMatcher : ITemplateMatcher {
         height: Int
     ): List<FindResult> {
         return results.toList().mapNotNull {
-            val adjustedScore = it.score + 1
-            if (adjustedScore < threshold) return@mapNotNull null
+            if (it.score < threshold) return@mapNotNull null
             FindResult(
                 Rectangle((it.x / scaleFactor).roundToInt(), (it.y / scaleFactor).roundToInt(), width, height),
-                adjustedScore
+                it.score
             )
         }
     }

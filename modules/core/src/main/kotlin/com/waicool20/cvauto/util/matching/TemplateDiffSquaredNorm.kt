@@ -52,7 +52,7 @@ class TemplateDiffSquaredNorm : TemplateIntensityImage.EvaluatorMethod<GrayF32> 
             }
         }
 
-        return (total / sqrt(iTotal * tTotal)).toFloat()
+        return (total / sqrt(iTotal * tTotal)).toFloat() - 1
     }
 
     override fun evaluateMask(tl_x: Int, tl_y: Int): Float {
