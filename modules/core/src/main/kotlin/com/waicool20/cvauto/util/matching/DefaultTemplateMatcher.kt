@@ -6,6 +6,7 @@ import com.waicool20.cvauto.core.template.ITemplate
 import com.waicool20.cvauto.util.*
 import com.waicool20.cvauto.util.matching.ITemplateMatcher.FindResult
 import java.awt.Rectangle
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
@@ -35,7 +36,7 @@ class DefaultTemplateMatcher : ITemplateMatcher {
 
     override fun findBest(template: ITemplate, image: GrayF32, count: Int): List<FindResult> {
         val scaleFactor = if (settings.matchWidth > 0) {
-            settings.matchWidth.toDouble() / image.width
+            min(1.0, settings.matchWidth.toDouble() / image.width)
         } else 1.0
         val scaledImage = image.scale(scaleFactor).blurred(settings.blurRadius)
 
