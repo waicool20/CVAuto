@@ -142,6 +142,7 @@ class AndroidTouchInterface private constructor(
     }
 
     override fun gesture(swipes: List<ITouchInterface.Swipe>, duration: Millis) = synchronized(this) {
+        swipes.forEach { touchMove(it.slot, it.x1, it.y1) }
         swipes.forEach { touchDown(it.slot) }
         eventSync()
         Animations.EaseInOutQuad(1000).timed(duration).forEach { p ->
