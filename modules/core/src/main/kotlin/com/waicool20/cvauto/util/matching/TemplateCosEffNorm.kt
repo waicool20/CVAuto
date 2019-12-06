@@ -14,6 +14,7 @@ class TemplateCosEffNorm : EvaluatorMethodAdapter() {
     override fun initialize(owner: TemplateIntensityImage<GrayF32>) {
         super.initialize(owner)
         templateArea = template.width * template.height
+        templateMean = 0.0
 
         for (y in 0 until template.height) {
             var templateIndex: Int = template.startIndex + y * template.stride
@@ -55,8 +56,10 @@ class TemplateCosEffNorm : EvaluatorMethodAdapter() {
             }
         }
 
-        return (-total / sqrt(iTotal * tTotal)).toFloat()
+        return (total / sqrt(iTotal * tTotal)).toFloat()
     }
+
+    override fun isMaximize() = true
 }
 
 inline fun <T> ITemplateMatcher.useCosEffNorm(block: () -> T): T {
