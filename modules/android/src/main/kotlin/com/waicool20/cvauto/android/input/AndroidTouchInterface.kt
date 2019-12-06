@@ -6,10 +6,11 @@ import com.waicool20.cvauto.android.readText
 import com.waicool20.cvauto.core.Millis
 import com.waicool20.cvauto.core.input.ITouchInterface
 import com.waicool20.cvauto.util.Animations
-import java.util.*
+import java.util.Collections
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.math.*
+import kotlin.random.Random
 
 class AndroidTouchInterface private constructor(
     private val device: AndroidDevice,
@@ -51,7 +52,8 @@ class AndroidTouchInterface private constructor(
     ) : ITouchInterface.Settings
 
     companion object {
-        private val rng = Random()
+        var LOG_INPUT_EVENTS = false
+
         internal fun getForDevice(device: AndroidDevice): AndroidTouchInterface? {
             val inputInfo = device.execute("getevent -p")
                 .readText()
@@ -97,9 +99,7 @@ class AndroidTouchInterface private constructor(
     override fun touchUp(slot: Int) = synchronized(this) {
         if (_touches[slot].isTouching) {
             sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_SLOT, slot.toLong())
-            sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_PRESSURE, 0)
-            sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_TRACKING_ID, 0xfffffffff)
-            sendEvent(EventType.EV_KEY, InputEvent.BTN_TOOL_FINGER, InputEvent.KEY_UP.code)
+            sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_TRACKING_ID, -1)
             _touches[slot].isTouching = false
         }
     }
@@ -108,11 +108,9 @@ class AndroidTouchInterface private constructor(
         if (!_touches[slot].isTouching) {
             sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_SLOT, slot.toLong())
             sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_TRACKING_ID, slot.toLong())
-            sendEvent(EventType.EV_KEY, InputEvent.BTN_TOOL_FINGER, InputEvent.KEY_DOWN.code)
+            sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_TOUCH_MAJOR, 50L + Random.nextInt(-25, 25))
+            sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_PRESSURE, 50L + Random.nextInt(-25, 25))
             sendCoords(_touches[slot].cursorX, _touches[slot].cursorY)
-            sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_TOUCH_MAJOR, 150L + rng.nextInt(50))
-            sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_TOUCH_MINOR, 100L + rng.nextInt(50))
-            sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_PRESSURE, 100L + rng.nextInt(100))
             _touches[slot].isTouching = true
         }
     }
@@ -126,6 +124,7 @@ class AndroidTouchInterface private constructor(
             if (xChanged || yChanged) {
                 sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_SLOT, slot.toLong())
                 sendCoords(x, y)
+                eventSync()
             }
         }
     }
@@ -135,7 +134,7 @@ class AndroidTouchInterface private constructor(
     }
 
     override fun tap(slot: Int, x: Int, y: Int) = synchronized(this) {
-        touchMove(slot, x, y); eventSync()
+        touchMove(slot, x, y)
         touchDown(slot); eventSync()
         TimeUnit.MILLISECONDS.sleep(settings.midTapDelay)
         touchUp(slot); eventSync()
@@ -207,7 +206,8 @@ class AndroidTouchInterface private constructor(
     }
 
     private fun sendEvent(type: EventType, event: InputEvent, value: Long) {
-        device.execute("sendevent ${devFile.path} ${type.code} ${event.code} $value")
+        if (LOG_INPUT_EVENTS) println("sendevent ${devFile.path} $type(${type.code}) $event(${event.code}) $value")
+        device.execute("sendevent ${devFile.path} ${type.code} ${event.code} '$value'").waitFor()
     }
 
     private fun valueToCoord(value: Long, event: InputEvent): Int {
