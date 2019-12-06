@@ -74,6 +74,7 @@ class DefaultTemplateMatcher : ITemplateMatcher {
         return TemplateMatching(matchingAlgo).apply {
             setImage(image)
             //TODO Support Masks?
+            setMinimumSeparation(min(template.width, template.height))
             setTemplate(template, null, count)
             process()
         }
@@ -86,7 +87,7 @@ class DefaultTemplateMatcher : ITemplateMatcher {
         height: Int
     ): List<FindResult> {
         return results.toList().mapNotNull {
-            if (it.score < threshold) return@mapNotNull null
+            if (scaleFactor == 1.0 && it.score < threshold) return@mapNotNull null
             FindResult(
                 Rectangle((it.x / scaleFactor).roundToInt(), (it.y / scaleFactor).roundToInt(), width, height),
                 it.score
