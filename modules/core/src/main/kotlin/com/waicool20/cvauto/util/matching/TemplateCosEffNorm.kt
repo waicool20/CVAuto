@@ -43,13 +43,13 @@ class TemplateCosEffNorm : EvaluatorMethodAdapter() {
         var iTotal = 0.0
 
         for (y in 0 until template.height) {
-            val imageIndex = image.startIndex + (tl_y + y) * image.stride + tl_x
-            val templateIndex = template.startIndex + y * template.stride
+            var imageIndex = image.startIndex + (tl_y + y) * image.stride + tl_x
+            var templateIndex = template.startIndex + y * template.stride
             for (x in 0 until template.width) {
                 // ArraysOutOfBoundsException may occur in a non-thread safe environment
                 // Make sure image and template stay consistent if this is shared among threads
-                val iData = image.data[imageIndex] - imageMean
-                val tData = template.data[templateIndex] - templateMean
+                val iData = image.data[imageIndex++] - imageMean
+                val tData = template.data[templateIndex++] - templateMean
                 total += tData * iData
                 iTotal += iData * iData
                 tTotal += tData * tData
