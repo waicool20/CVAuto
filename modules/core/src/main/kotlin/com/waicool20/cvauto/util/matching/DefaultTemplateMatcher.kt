@@ -15,7 +15,7 @@ import kotlin.math.roundToInt
  */
 class DefaultTemplateMatcher : ITemplateMatcher {
     class Settings : ITemplateMatcher.Settings() {
-        override var matchWidth = 0
+        override var matchDimension = 0
             set(value) {
                 field = value
                 imageCache.clear()
@@ -23,7 +23,7 @@ class DefaultTemplateMatcher : ITemplateMatcher {
     }
 
     companion object {
-        private val imageCache = mutableMapOf<ITemplate, GrayF32>()
+        private val imageCache = mutableMapOf<ITemplate, MutableMap<Double, GrayF32>>()
     }
 
     // TODO Template Image equal size bug, https://github.com/lessthanoptimal/BoofCV/issues/144
@@ -36,12 +36,18 @@ class DefaultTemplateMatcher : ITemplateMatcher {
     }
 
     override fun findBest(template: ITemplate, image: GrayF32, count: Int): List<FindResult> {
-        val scaleFactor = if (settings.matchWidth > 0) {
-            min(1.0, settings.matchWidth.toDouble() / image.width)
-        } else 1.0
+        val scaleFactor = when {
+            settings.matchDimension < 0 -> 1.0
+            image.width >= image.height -> min(1.0, settings.matchDimension / image.width.toDouble())
+            image.width < image.height -> min(1.0, settings.matchDimension / image.height.toDouble())
+            else -> 1.0
+        }
         val scaledImage = image.scale(scaleFactor).blurred(settings.blurRadius)
 
-        val templateF32 = imageCache.getOrPut(template) { template.load().asGrayF32() }
+        val templateF32 = imageCache
+            .getOrPut(template) { mutableMapOf() }
+            .getOrPut(scaleFactor) { template.load().asGrayF32() }
+
         val templateF32Scaled = templateF32.scale(scaleFactor).blurred(settings.blurRadius)
 
         val threshold = template.threshold ?: settings.defaultThreshold

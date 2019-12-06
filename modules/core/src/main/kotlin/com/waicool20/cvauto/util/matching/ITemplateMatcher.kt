@@ -19,12 +19,13 @@ interface ITemplateMatcher {
 
     open class Settings(
         /**
-         * Images get scaled down to this width while maintaining ratio during matching,
+         * Images get scaled down based while maintaining ratio during matching,
+         * amount scaled = matchDimension / longest image edge
          * A smaller value will lead to faster matches but with poorer accuracy.
          * Set this to 0 or negative number to disable
          *
          */
-        open var matchWidth: Pixels = 0,
+        open var matchDimension: Pixels = 0,
         /**
          * Default threshold in case it isn't specified in the template
          */
