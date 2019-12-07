@@ -1,6 +1,7 @@
 package com.waicool20.cvauto.util
 
 import boofcv.abst.distort.FDistort
+import boofcv.alg.color.ColorHsv
 import boofcv.alg.filter.blur.GBlurImageOps
 import boofcv.io.image.ConvertBufferedImage
 import boofcv.struct.image.GrayF32
@@ -63,4 +64,18 @@ fun GrayF32.blurred(radius: Int): GrayF32 {
     if (radius == 0) return this
     require(radius > 0) { "radius must be a non-negative number" }
     return GBlurImageOps.gaussian(this, null, -1.0, radius, null)
+}
+
+/**
+ * Convenience extension to convert rgb [Planar] to hsv
+ */
+fun Planar<GrayF32>.asHsv(): Planar<GrayF32> {
+    return createSameShape().apply { ColorHsv.rgbToHsv(this@asHsv, this) }
+}
+
+/**
+ * Convenience extension to convert hsv [Planar] to rgb
+ */
+fun Planar<GrayF32>.asRgb(): Planar<GrayF32> {
+    return createSameShape().apply { ColorHsv.hsvToRgb(this@asRgb, this) }
 }
