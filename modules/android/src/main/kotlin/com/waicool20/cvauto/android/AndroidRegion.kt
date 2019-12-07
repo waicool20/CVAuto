@@ -131,16 +131,21 @@ class AndroidRegion(
 
     private fun doNormalCapture(): BufferedImage {
         var throwable: Throwable? = null
-        for (i in 0 until 3) {
+        for (i in 0 until 10) {
             try {
                 val inputStream = DataInputStream(device.execute("screencap").inputStream)
                 val width = inputStream.read() or (inputStream.read() shl 8) or
                         (inputStream.read() shl 16) or (inputStream.read() shl 24)
                 val height = inputStream.read() or (inputStream.read() shl 8) or
                         (inputStream.read() shl 16) or (inputStream.read() shl 24)
+                if (width < 0 || height < 0) {
+                    inputStream.close()
+                    continue
+                }
                 inputStream.skip(8)
                 return createByteRGBBufferedImage(width, height, true).apply {
                     inputStream.readFully((raster.dataBuffer as DataBufferByte).data)
+                    inputStream.close()
                 }
             } catch (t: Throwable) {
                 throwable = t
