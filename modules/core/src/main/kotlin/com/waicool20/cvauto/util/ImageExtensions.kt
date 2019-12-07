@@ -3,6 +3,7 @@ package com.waicool20.cvauto.util
 import boofcv.abst.distort.FDistort
 import boofcv.alg.color.ColorHsv
 import boofcv.alg.filter.blur.GBlurImageOps
+import boofcv.alg.misc.PixelMath
 import boofcv.io.image.ConvertBufferedImage
 import boofcv.struct.image.GrayF32
 import boofcv.struct.image.Planar
@@ -198,6 +199,94 @@ fun Planar<GrayF32>.hsvFilter(
             index++
         }
     }
+}
+
+//</editor-fold>
+
+//<editor-fold desc="Pixel Math">
+
+operator fun GrayF32.plus(other: GrayF32): GrayF32 {
+    val result = createSameShape()
+    PixelMath.add(this, other, result)
+    return result
+}
+
+operator fun GrayF32.plus(value: Float): GrayF32 {
+    val result = createSameShape()
+    PixelMath.plus(this, value, result)
+    return result
+}
+
+operator fun GrayF32.plusAssign(other: GrayF32) {
+    PixelMath.add(this, other, this)
+}
+
+operator fun GrayF32.plusAssign(value: Float) {
+    PixelMath.plus(this, value, this)
+}
+
+operator fun GrayF32.minus(other: GrayF32): GrayF32 {
+    val result = createSameShape()
+    PixelMath.subtract(this, other, result)
+    return result
+}
+
+operator fun GrayF32.minus(value: Float): GrayF32 {
+    val result = createSameShape()
+    PixelMath.minus(this, value, result)
+    return result
+}
+
+operator fun GrayF32.minusAssign(other: GrayF32) {
+    PixelMath.subtract(this, other, this)
+}
+
+operator fun GrayF32.minusAssign(value: Float) {
+    PixelMath.minus(this, value, this)
+}
+
+operator fun GrayF32.times(other: GrayF32): GrayF32 {
+    val result = createSameShape()
+    PixelMath.multiply(this, other, result)
+    return result
+}
+
+operator fun GrayF32.times(value: Float): GrayF32 {
+    val result = createSameShape()
+    PixelMath.multiply(this, value, result)
+    return result
+}
+
+operator fun GrayF32.timesAssign(other: GrayF32) {
+    PixelMath.multiply(this, other, this)
+}
+
+operator fun GrayF32.timesAssign(value: Float) {
+    PixelMath.multiply(this, value, this)
+}
+
+operator fun GrayF32.div(other: GrayF32): GrayF32 {
+    val result = createSameShape()
+    PixelMath.divide(this, other, result)
+    return result
+}
+
+operator fun GrayF32.div(value: Float): GrayF32 {
+    val result = createSameShape()
+    PixelMath.divide(this, value, result)
+    return result
+}
+
+operator fun GrayF32.divAssign(other: GrayF32) {
+    PixelMath.divide(this, other, this)
+}
+
+operator fun GrayF32.divAssign(value: Float) {
+    PixelMath.divide(this, value, this)
+}
+
+operator fun GrayF32.unaryMinus() {
+    PixelMath.negative(this, this)
 }
 
 //</editor-fold>
