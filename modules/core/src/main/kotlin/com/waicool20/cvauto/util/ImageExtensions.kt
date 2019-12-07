@@ -4,6 +4,7 @@ import boofcv.abst.distort.FDistort
 import boofcv.alg.filter.blur.GBlurImageOps
 import boofcv.io.image.ConvertBufferedImage
 import boofcv.struct.image.GrayF32
+import boofcv.struct.image.Planar
 import java.awt.image.BufferedImage
 import kotlin.math.roundToInt
 
@@ -20,6 +21,21 @@ fun GrayF32.asBufferedImage(): BufferedImage = ConvertBufferedImage.convertTo(th
  * @return New [GrayF32] with equivalent image representation
  */
 fun BufferedImage.asGrayF32(): GrayF32 = ConvertBufferedImage.convertFrom(this, null as GrayF32?)
+
+/**
+ * Convenience extension to convert from [Planar] to [BufferedImage]
+ *
+ * @return New [BufferedImage] with equivalent image representation
+ */
+fun Planar<GrayF32>.asBufferedImage(): BufferedImage = ConvertBufferedImage.convertTo_F32(this, null, true)
+
+/**
+ * Convenience extension to convert from [BufferedImage] to [Planar]
+ *
+ * @return New [Planar] with equivalent image representation
+ */
+fun BufferedImage.asPlanar(): Planar<GrayF32> =
+    ConvertBufferedImage.convertFromPlanar(this, null, true, GrayF32::class.java)
 
 /**
  * Scales the image size with [scaleFactor]
