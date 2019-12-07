@@ -7,6 +7,7 @@ import boofcv.io.image.ConvertBufferedImage
 import boofcv.struct.image.GrayF32
 import boofcv.struct.image.Planar
 import java.awt.image.BufferedImage
+import kotlin.math.PI
 import kotlin.math.roundToInt
 
 /**
@@ -79,3 +80,126 @@ fun Planar<GrayF32>.asHsv(): Planar<GrayF32> {
 fun Planar<GrayF32>.asRgb(): Planar<GrayF32> {
     return createSameShape().apply { ColorHsv.hsvToRgb(this@asRgb, this) }
 }
+
+//<editor-fold desc="hsvFilter">
+
+/**
+ * Filters pixels in the hsv color space, this [Planar] must already be in the hsv color space
+ *
+ * @param hueRange Range of accepted hue values (0 - 360)
+ * @param satRange Range of accepted saturation values (0 - 100)
+ * @param satRange Range of accepted lightness values (0 - 255)
+ */
+fun Planar<GrayF32>.hsvFilter(hueRange: IntRange? = null, satRange: IntRange? = null, valRange: IntRange? = null) {
+    hsvFilter(
+        hueRange?.toDoubleRange(),
+        satRange?.toDoubleRange(),
+        valRange?.toDoubleRange()
+    )
+}
+
+/**
+ * Filters pixels in the hsv color space, this [Planar] must already be in the hsv color space
+ *
+ * @param hueRange Range of accepted hue values (0 - 360)
+ * @param satRange Range of accepted saturation values (0 - 100)
+ * @param satRange Range of accepted lightness values (0 - 255)
+ */
+fun Planar<GrayF32>.hsvFilter(
+    hueRange: ClosedFloatingPointRange<Double>? = null,
+    satRange: ClosedFloatingPointRange<Double>? = null,
+    valRange: ClosedFloatingPointRange<Double>? = null
+) {
+    if (hueRange == null && satRange == null && valRange == null) {
+        error("At least one critia is required for filter!")
+    }
+
+    val hRange = hueRange ?: 0.0..360.0
+    val sRange = satRange ?: 0.0..100.0
+    val vRange = valRange ?: 0.0..255.0
+
+    require(hRange.start >= 0 && hRange.endInclusive <= 360) { "Hue must be in 0 - 360" }
+    require(sRange.start >= 0 && sRange.endInclusive <= 100) { "Saturation must be in 0 - 100" }
+    require(vRange.start >= 0 && vRange.endInclusive <= 255) { "Value must be in 0 - 255" }
+
+    val hueBand = getBand(0)
+    val satBand = getBand(1)
+    val valBand = getBand(2)
+
+    for (y in 0 until height) {
+        var index = startIndex + y * stride
+        for (x in 0 until width) {
+            val hueValue = hueBand.data[index] * 180 / PI
+            val satValue = satBand.data[index] * 100
+            val valValue = valBand.data[index]
+
+            if (!(hueValue in hRange && satValue in sRange && valValue in vRange)) {
+                valBand.data[index] = 0f
+            }
+            index++
+        }
+    }
+}
+
+/**
+ * Filters pixels in the hsv color space, this [Planar] must already be in the hsv color space
+ *
+ * @param hueRange Range of accepted hue values (0 - 360)
+ * @param satRange Range of accepted saturation values (0 - 100)
+ * @param satRange Range of accepted lightness values (0 - 255)
+ */
+fun Planar<GrayF32>.hsvFilter(hueRange: Array<IntRange>? = null, satRange: Array<IntRange>? = null, valRange: Array<IntRange>? = null) {
+    hsvFilter(
+        hueRange?.map { it.toDoubleRange() }?.toTypedArray(),
+        satRange?.map { it.toDoubleRange() }?.toTypedArray(),
+        valRange?.map { it.toDoubleRange() }?.toTypedArray()
+    )
+}
+
+
+/**
+ * Filters pixels in the hsv color space, this [Planar] must already be in the hsv color space
+ *
+ * @param hueRange Range of accepted hue values (0 - 360)
+ * @param satRange Range of accepted saturation values (0 - 100)
+ * @param satRange Range of accepted lightness values (0 - 255)
+ */
+fun Planar<GrayF32>.hsvFilter(
+    hueRange: Array<ClosedFloatingPointRange<Double>>? = null,
+    satRange: Array<ClosedFloatingPointRange<Double>>? = null,
+    valRange: Array<ClosedFloatingPointRange<Double>>? = null
+) {
+    if (hueRange == null && satRange == null && valRange == null) {
+        error("At least one critia is required for filter!")
+    }
+
+    val hRanges = hueRange ?: arrayOf(0.0..360.0)
+    val sRanges = satRange ?: arrayOf(0.0..100.0)
+    val vRanges = valRange ?: arrayOf(0.0..255.0)
+
+    require(hRanges.all { it.start >= 0 && it.endInclusive <= 360 }) { "Hue must be in 0 - 360" }
+    require(sRanges.all { it.start >= 0 && it.endInclusive <= 360 }) { "Saturation must be in 0 - 100" }
+    require(vRanges.all { it.start >= 0 && it.endInclusive <= 360 }) { "Value must be in 0 - 255" }
+
+    val hueBand = getBand(0)
+    val satBand = getBand(1)
+    val valBand = getBand(2)
+
+    for (y in 0 until height) {
+        var index = startIndex + y * stride
+        for (x in 0 until width) {
+            val hueValue = hueBand.data[index] * 180 / PI
+            val satValue = satBand.data[index] * 100
+            val valValue = valBand.data[index]
+
+            if (!(hRanges.any { hueValue in it } && sRanges.any { satValue in it } && vRanges.any { valValue in it })) {
+                valBand.data[index] = 0f
+            }
+            index++
+        }
+    }
+}
+
+//</editor-fold>
+
+private inline fun IntRange.toDoubleRange() = first.toDouble()..last.toDouble()
