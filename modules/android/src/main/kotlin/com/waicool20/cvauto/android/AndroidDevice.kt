@@ -61,7 +61,7 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
      * @returns True if pointer info is on screen
      */
     fun isShowingPointerInfo(): Boolean {
-        return execute("settings get system pointer_location").readText() == "1"
+        return executeShell("settings get system pointer_location").readText().contains("1")
     }
 
     /**
@@ -70,14 +70,14 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
      * @param display Displays pointer info if True
      */
     fun displayPointerInfo(display: Boolean) {
-        execute("settings put system pointer_location ${if (display) "1" else "0"}")
+        executeShell("settings put system pointer_location ${if (display) "1" else "0"}")
     }
 
     /**
      * Toggles pointer info
      */
     fun togglePointerInfo() {
-        execute("settings put system pointer_location ${if (isShowingPointerInfo()) "0" else "1"}")
+        executeShell("settings put system pointer_location ${if (isShowingPointerInfo()) "0" else "1"}")
     }
 
     /**
