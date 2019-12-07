@@ -42,7 +42,9 @@ abstract class Region<T : IDevice>(
      * @param region The region containing the matched location
      * @param score The similarity score given by the matcher
      */
-    data class RegionFindResult<T : IDevice>(val region: Region<T>, val score: kotlin.Double)
+    data class RegionFindResult<T : IDevice>(val region: Region<T>, val score: kotlin.Double) {
+        inline fun <reified R: Region<T>> region() = region as R
+    }
 
     companion object {
         val DEFAULT_MATCHER = DefaultTemplateMatcher()
@@ -126,6 +128,21 @@ abstract class Region<T : IDevice>(
         val r = mapRectangleToRegion(Rectangle(x, y, width, height))
         require(contains(r)) { "Sub-region must be smaller than the current region" }
         return r
+    }
+
+    /**
+     * Gets a smaller region that is contained in this region.
+     *
+     * @param x x Offset relative to the x coordinate of this region
+     * @param y y Offset relative to the y coordinate of this region
+     * @param width Width of sub region
+     * @param height Height of sub region
+     * @return New [Region] representing this sub region
+     * @throws IllegalArgumentException if new sub region is not contained in the current region
+     */
+    @JvmName("subRegionCast")
+    inline fun <reified R: Region<T>> subRegion(x: Pixels, y: Pixels, width: Pixels, height: Pixels): R {
+        return subRegion(x, y, width, height) as R
     }
 
     /**
