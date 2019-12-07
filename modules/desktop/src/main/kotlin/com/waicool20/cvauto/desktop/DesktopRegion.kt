@@ -44,7 +44,14 @@ class DesktopRegion(
         throw UnsupportedOperationException("Not Implemented") // TODO Implement this function
     }
 
-    override fun clone(): Any {
+    override fun copy(
+        x: Pixels,
+        y: Pixels,
+        width: Pixels,
+        height: Pixels,
+        device: Desktop,
+        screen: Int
+    ): DesktopRegion {
         return DesktopRegion(x, y, width, height, device, screen)
     }
 }

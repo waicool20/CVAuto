@@ -125,8 +125,15 @@ class AndroidRegion(
         )
     }
 
-    override fun clone(): Any {
-        return AndroidRegion(x, y, width, height, device, screen)
+    override fun copy(
+        x: Pixels,
+        y: Pixels,
+        width: Pixels,
+        height: Pixels,
+        device: AndroidDevice,
+        screen: Int
+    ): AndroidRegion {
+       return AndroidRegion(x, y, width, height, device, screen)
     }
 
     private fun doNormalCapture(): BufferedImage {

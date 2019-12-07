@@ -33,6 +33,13 @@ class CachedRegion<T : IDevice> private constructor(
     override fun click(random: Boolean) = region.click()
 
     override fun type(text: String) = region.type(text)
+
+    /**
+     * Copy constructor, the new cached region will be the snapshot at the time of copy
+     */
+    override fun copy(x: Pixels, y: Pixels, width: Pixels, height: Pixels, device: T, screen: Int): CachedRegion<T> {
+        return region.copy(x,y, width, height, device, screen).asCachedRegion()
+    }
 }
 
 fun <T : IDevice> Region<T>.asCachedRegion(): CachedRegion<T> = CachedRegion(this)

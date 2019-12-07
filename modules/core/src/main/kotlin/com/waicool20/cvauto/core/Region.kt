@@ -43,7 +43,7 @@ abstract class Region<T : IDevice>(
      * @param score The similarity score given by the matcher
      */
     data class RegionFindResult<T : IDevice>(val region: Region<T>, val score: kotlin.Double) {
-        inline fun <reified R: Region<T>> region() = region as R
+        inline fun <reified R : Region<T>> region() = region as R
     }
 
     companion object {
@@ -140,8 +140,7 @@ abstract class Region<T : IDevice>(
      * @return New [Region] representing this sub region
      * @throws IllegalArgumentException if new sub region is not contained in the current region
      */
-    @JvmName("subRegionCast")
-    inline fun <reified R: Region<T>> subRegion(x: Pixels, y: Pixels, width: Pixels, height: Pixels): R {
+    inline fun <reified R : Region<T>> subRegionAs(x: Pixels, y: Pixels, width: Pixels, height: Pixels): R {
         return subRegion(x, y, width, height) as R
     }
 
@@ -258,6 +257,33 @@ abstract class Region<T : IDevice>(
         if (Random.nextBoolean()) dy = -dy
         return Point((centerX + dx).roundToInt(), (centerY + dy).roundToInt())
     }
+
+    /**
+     * Copy constructor
+     */
+    abstract fun copy(
+        x: Pixels = this.x,
+        y: Pixels = this.y,
+        width: Pixels = this.width,
+        height: Pixels = this.height,
+        device: T = this.device,
+        screen: Int = this.screen
+    ): Region<T>
+
+    /**
+     * Copy constructor
+     */
+    inline fun <reified R : Region<T>> copyAs(
+        x: Pixels = this.x,
+        y: Pixels = this.y,
+        width: Pixels = this.width,
+        height: Pixels = this.height,
+        device: T = this.device,
+        screen: Int = this.screen
+    ): R = copy(x, y, width, height, device, screen) as R
+
+    @Deprecated("Use copy instead", ReplaceWith("copy()"))
+    final override fun clone(): Any = error("Use Region<T>.copy()")
 
     //<editor-fold desc="Quick input shortcuts">
 
