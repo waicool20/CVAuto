@@ -8,7 +8,7 @@ import boofcv.factory.feature.detdesc.FactoryDetectDescribe
 import boofcv.struct.feature.BrightFeature
 import boofcv.struct.image.ImageGray
 
-object KDetectDescribe {
+object KFactoryDetectDescribe {
     inline fun <reified T : ImageGray<T>> surfStable(
         configDetector: ConfigFastHessian? = null,
         configDescribe: ConfigSurfDescribe.Stability? = null,
