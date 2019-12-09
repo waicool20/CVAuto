@@ -22,7 +22,7 @@ class CachedRegion<T : IDevice> private constructor(
     constructor(region: Region<T>): this(region, null)
 
     private val cachedImage = parentCachedImage ?: region.capture()
-    override fun capture(): BufferedImage = cachedImage.getSubimage(x, y, width, height)
+    override fun capture(): BufferedImage = cachedImage
 
     override fun mapRectangleToRegion(rect: Rectangle) =
         CachedRegion(region.mapRectangleToRegion(rect), cachedImage)
