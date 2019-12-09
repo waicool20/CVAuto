@@ -6,6 +6,7 @@ import boofcv.alg.filter.blur.GBlurImageOps
 import boofcv.alg.misc.PixelMath
 import boofcv.io.image.ConvertBufferedImage
 import boofcv.struct.image.GrayF32
+import boofcv.struct.image.GrayU8
 import boofcv.struct.image.Planar
 import java.awt.image.BufferedImage
 import kotlin.math.PI
@@ -39,6 +40,20 @@ fun Planar<GrayF32>.asBufferedImage(): BufferedImage = ConvertBufferedImage.conv
  */
 fun BufferedImage.asPlanar(): Planar<GrayF32> =
     ConvertBufferedImage.convertFromPlanar(this, null, true, GrayF32::class.java)
+
+/**
+ * Convenience extension to convert from [GrayU8] to [BufferedImage]
+ *
+ * @return New [BufferedImage] with equivalent image representation
+ */
+fun GrayU8.asBufferedImage(): BufferedImage = ConvertBufferedImage.convertTo(this, null, true)
+
+/**
+ * Convenience extension to convert from [BufferedImage] to [GrayU8]
+ *
+ * @return New [GrayF32] with equivalent image representation
+ */
+fun BufferedImage.asGrayU8(): GrayU8 = ConvertBufferedImage.convertFrom(this, null as GrayU8?)
 
 /**
  * Scales the image size with [scaleFactor]
