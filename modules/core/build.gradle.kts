@@ -23,6 +23,7 @@ dependencies {
 
     //api("org.bytedeco", "javacv-platform", "1.5.1")
     api("org.boofcv:boofcv-core")
+    api("org.boofcv:boofcv-swing")
 }
 
 tasks.withType<KotlinCompile> {
