@@ -11,6 +11,8 @@ import java.awt.color.ColorSpace
 import java.awt.image.*
 import java.io.DataInputStream
 import java.io.EOFException
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 import kotlin.math.roundToInt
@@ -133,14 +135,15 @@ class AndroidRegion(
         device: AndroidDevice,
         screen: Int
     ): AndroidRegion {
-       return AndroidRegion(x, y, width, height, device, screen)
+        return AndroidRegion(x, y, width, height, device, screen)
     }
 
     private fun doNormalCapture(): BufferedImage {
-        var throwable: Throwable? = null
+        val throwables = mutableListOf<Throwable>()
         for (i in 0 until 10) {
+            val process = device.execute("screencap")
+            val inputStream = DataInputStream(process.inputStream)
             try {
-                val inputStream = DataInputStream(device.execute("screencap").inputStream)
                 val width = inputStream.read() or (inputStream.read() shl 8) or
                         (inputStream.read() shl 16) or (inputStream.read() shl 24)
                 val height = inputStream.read() or (inputStream.read() shl 8) or
@@ -150,15 +153,19 @@ class AndroidRegion(
                     continue
                 }
                 inputStream.skip(8)
-                return createByteRGBBufferedImage(width, height, true).apply {
-                    inputStream.readFully((raster.dataBuffer as DataBufferByte).data)
-                    inputStream.close()
-                }
+                val img = createByteRGBBufferedImage(width, height, true)
+                inputStream.readFully((img.raster.dataBuffer as DataBufferByte).data)
+                inputStream.close()
+                return img
             } catch (t: Throwable) {
-                throwable = t
+                throwables.add(t)
+                inputStream.close()
+                process.waitFor(1000, TimeUnit.MILLISECONDS)
+                process.destroy()
             }
         }
-        throw throwable ?: error("Could not capture region due to unknown error")
+        throwables.forEach { it.printStackTrace() }
+        error("Could not capture region due to various errors")
     }
 
     private fun doFastCapture(): BufferedImage {
@@ -188,6 +195,7 @@ class AndroidRegion(
         )
     }
 
+    @Throws(NegativeArraySizeException::class)
     private fun createByteRGBBufferedImage(width: Int, height: Int, hasAlpha: Boolean = false): BufferedImage {
         val cs = ColorSpace.getInstance(ColorSpace.CS_sRGB)
         val cm: ColorModel
