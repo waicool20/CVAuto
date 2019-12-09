@@ -4,10 +4,15 @@ import boofcv.abst.distort.FDistort
 import boofcv.alg.color.ColorHsv
 import boofcv.alg.filter.blur.GBlurImageOps
 import boofcv.alg.misc.PixelMath
+import boofcv.factory.geo.ConfigRansac
 import boofcv.io.image.ConvertBufferedImage
+import boofcv.struct.feature.BrightFeature
+import boofcv.struct.geo.AssociatedPair
 import boofcv.struct.image.GrayF32
 import boofcv.struct.image.GrayU8
 import boofcv.struct.image.Planar
+import com.waicool20.cvauto.util.wrapper.*
+import georegression.struct.homography.Homography2D_F64
 import java.awt.image.BufferedImage
 import kotlin.math.PI
 import kotlin.math.roundToInt
@@ -306,4 +311,41 @@ operator fun GrayF32.unaryMinus() {
 
 //</editor-fold>
 
+//<editor-fold desc="Misc">
+
+fun GrayF32.homography(other: GrayF32): Homography2D_F64 {
+    val ddp = KDetectDescribe.surfStable<GrayF32>(
+        Config.FastHessian(1.0, 2, 200, 1, 9, 4, 4)
+    )
+    val associate = KFactoryAssociation.run {
+        greedy<BrightFeature>(scoreEuclidean(true), 2.0, true)
+    }
+    val modelMatcher = KFactoryMultiViewRobust.homographyRansac(
+        Config.Ransac(60, 3.0)
+    )
+
+    val (pointsA, descA) = ddp.describeImage(this)
+    val (pointsB, descB) = ddp.describeImage(other)
+
+    associate.apply {
+        setSource(descA)
+        setDestination(descB)
+        associate()
+    }
+
+    val matches = associate.matches
+    val pairs = mutableListOf<AssociatedPair>()
+    for (i in 0 until matches.size()) {
+        val match = matches[i]
+        val a = pointsA[match.src]
+        val b = pointsB[match.dst]
+        pairs.add(AssociatedPair(a, b, false))
+    }
+    require(modelMatcher.process(pairs)) { "Model matching failed!" }
+    return modelMatcher.modelParameters.copy()
+}
+
+//</editor-fold>
+
+@Suppress("NOTHING_TO_INLINE")
 private inline fun IntRange.toDoubleRange() = first.toDouble()..last.toDouble()
