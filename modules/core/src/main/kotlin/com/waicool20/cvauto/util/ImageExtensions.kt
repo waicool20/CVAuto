@@ -4,14 +4,16 @@ import boofcv.abst.distort.FDistort
 import boofcv.alg.color.ColorHsv
 import boofcv.alg.filter.blur.GBlurImageOps
 import boofcv.alg.misc.PixelMath
-import boofcv.factory.geo.ConfigRansac
 import boofcv.io.image.ConvertBufferedImage
 import boofcv.struct.feature.BrightFeature
 import boofcv.struct.geo.AssociatedPair
 import boofcv.struct.image.GrayF32
 import boofcv.struct.image.GrayU8
 import boofcv.struct.image.Planar
-import com.waicool20.cvauto.util.wrapper.*
+import com.waicool20.cvauto.util.wrapper.Config
+import com.waicool20.cvauto.util.wrapper.KFactoryAssociation
+import com.waicool20.cvauto.util.wrapper.KFactoryDetectDescribe
+import com.waicool20.cvauto.util.wrapper.KFactoryMultiViewRobust
 import georegression.struct.homography.Homography2D_F64
 import java.awt.image.BufferedImage
 import kotlin.math.PI
@@ -169,7 +171,11 @@ fun Planar<GrayF32>.hsvFilter(
  * @param satRange Range of accepted saturation values (0 - 100)
  * @param satRange Range of accepted lightness values (0 - 255)
  */
-fun Planar<GrayF32>.hsvFilter(hueRange: Array<IntRange>? = null, satRange: Array<IntRange>? = null, valRange: Array<IntRange>? = null) {
+fun Planar<GrayF32>.hsvFilter(
+    hueRange: Array<IntRange>? = null,
+    satRange: Array<IntRange>? = null,
+    valRange: Array<IntRange>? = null
+) {
     hsvFilter(
         hueRange?.map { it.toDoubleRange() }?.toTypedArray(),
         satRange?.map { it.toDoubleRange() }?.toTypedArray(),
@@ -313,8 +319,14 @@ operator fun GrayF32.unaryMinus() {
 
 //<editor-fold desc="Misc">
 
+/**
+ * Computes the homography matrix between this and some other image
+ *
+ * @throws IllegalStateException if it failed to match up the images
+ * @return Homography matrix
+ */
 fun GrayF32.homography(other: GrayF32): Homography2D_F64 {
-    val ddp = KDetectDescribe.surfStable<GrayF32>(
+    val ddp = KFactoryDetectDescribe.surfStable<GrayF32>(
         Config.FastHessian(1.0, 2, 200, 1, 9, 4, 4)
     )
     val associate = KFactoryAssociation.run {
@@ -341,7 +353,7 @@ fun GrayF32.homography(other: GrayF32): Homography2D_F64 {
         val b = pointsB[match.dst]
         pairs.add(AssociatedPair(a, b, false))
     }
-    require(modelMatcher.process(pairs)) { "Model matching failed!" }
+    check(modelMatcher.process(pairs)) { "Model matching failed!" }
     return modelMatcher.modelParameters.copy()
 }
 

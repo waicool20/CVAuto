@@ -7,7 +7,13 @@ import boofcv.struct.geo.AssociatedPair
 import georegression.struct.homography.Homography2D_F64
 import org.ddogleg.fitting.modelset.ransac.Ransac
 
+/**
+ * Wrapper for [FactoryMultiViewRobust]
+ */
 object KFactoryMultiViewRobust {
+    /**
+     * @see [FactoryMultiViewRobust.homographyRansac]
+     */
     fun homographyRansac(
         ransac: ConfigRansac,
         homography: ConfigHomography? = null

@@ -3,8 +3,14 @@ package com.waicool20.cvauto.util.wrapper
 import boofcv.abst.feature.detect.interest.ConfigFastHessian
 import boofcv.factory.geo.ConfigRansac
 
+/**
+ * Wrapper class for various config types
+ */
 @Suppress("NOTHING_TO_INLINE")
 object Config {
+    /**
+     * @see [ConfigFastHessian]
+     */
     inline fun FastHessian(
         detectThreshold: Double,
         extractRadius: Int,
@@ -25,6 +31,9 @@ object Config {
         )
     }
 
+    /**
+     * @see [ConfigRansac]
+     */
     inline fun Ransac(
         maxIterations: Int,
         inlierThreshold: Double

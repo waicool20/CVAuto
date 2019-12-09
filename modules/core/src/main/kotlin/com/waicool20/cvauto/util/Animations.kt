@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.yield
 import java.util.concurrent.TimeUnit
 import kotlin.math.pow
 
@@ -72,7 +71,7 @@ object Animations {
 
     fun EaseInQuad(steps: Long) = AnimationSequence(steps) {
         for (step in 0 until steps) {
-            yield((step/ steps.toDouble()).pow(2))
+            yield((step / steps.toDouble()).pow(2))
         }
     }
 
