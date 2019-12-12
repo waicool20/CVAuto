@@ -152,7 +152,8 @@ fun Planar<GrayF32>.hsvFilter(
     for (y in 0 until height) {
         var index = startIndex + y * stride
         for (x in 0 until width) {
-            val hueValue = hueBand.data[index] * 180 / PI
+            val hue = hueBand.data[index].takeIf { !it.isNaN() } ?: 0f
+            val hueValue = hue * 180 / PI
             val satValue = satBand.data[index] * 100
             val valValue = valBand.data[index]
 
