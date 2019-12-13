@@ -56,6 +56,11 @@ class TemplateCosEffNorm : EvaluatorMethodAdapter() {
             }
         }
 
+        // Workaround for flat template/image
+        total += Float.MIN_VALUE
+        iTotal += Float.MIN_VALUE
+        tTotal += Float.MIN_VALUE
+
         return (total / sqrt(iTotal * tTotal)).toFloat()
     }
 
