@@ -25,7 +25,7 @@ class CachedRegion<T : IDevice> private constructor(
     override fun capture(): BufferedImage = cachedImage
 
     override fun mapRectangleToRegion(rect: Rectangle) =
-        CachedRegion(region.mapRectangleToRegion(rect), cachedImage)
+        CachedRegion(region.mapRectangleToRegion(rect), cachedImage.getSubimage(rect.x, rect.y, rect.width, rect.height))
 
     override fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<T> =
         region.mapFindResultToRegion(result)
