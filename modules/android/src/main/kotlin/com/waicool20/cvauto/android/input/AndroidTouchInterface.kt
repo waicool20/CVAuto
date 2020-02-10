@@ -59,7 +59,11 @@ class AndroidTouchInterface private constructor(
                 .readText()
                 .split("add device")
                 .find { it.contains("ABS") }
-                ?.lines() ?: error("No touch interface found for device ${device.serial}")
+                ?.lines()
+            if (inputInfo == null) {
+                println("No touch interface found for device ${device.serial}")
+                return null
+            }
             val devFile = DeviceFile(inputInfo[0].takeLastWhile { it != ' ' })
             val touchSpecs = inputInfo.drop(2)
                 .mapNotNull(Specs.Companion::parse).toMap()

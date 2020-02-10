@@ -26,7 +26,10 @@ class AndroidKeyboard private constructor(
                 .split("add device")
                 .filter { it.contains("KEY") }
                 .takeIf { it.isNotEmpty() }
-                ?: error("No keyboard found for device ${device.serial}")
+            if (inputInfo == null) {
+                println("No keyboard found for device ${device.serial}")
+                return AndroidKeyboard(device, emptyMap())
+            }
 
             val keyDevFileMap = mutableMapOf<Key, DeviceFile>()
             inputInfo.map { it.split(Regex("\\s+")) }.forEach { devEntryTokens ->
