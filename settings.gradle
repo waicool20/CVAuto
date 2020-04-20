@@ -3,5 +3,6 @@ rootProject.name = 'cvauto'
 include("modules:core")
 include("modules:desktop")
 include("modules:android")
+include("modules:android:server")
 
 includeBuild("./BoofCV")
