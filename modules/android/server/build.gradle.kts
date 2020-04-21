@@ -23,11 +23,15 @@ android {
 
         testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
     }
+    lintOptions {
+        isAbortOnError = false
+    }
 }
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation("com.android.support", "appcompat-v7", "28.0.0")
+    implementation("commons-cli", "commons-cli", "1.4")
     testImplementation("junit", "junit", "4.12")
     androidTestImplementation("com.android.support.test", "runner", "1.0.2")
     androidTestImplementation("com.android.support.test.espresso", "espresso-core", "3.0.2")

@@ -1,5 +1,51 @@
 package com.waicool20.cvauto.android.server
 
-fun main() {
-    println("Hello World")
+import android.os.Handler
+import android.os.Looper
+import org.apache.commons.cli.DefaultParser
+import org.apache.commons.cli.Options
+import java.io.Closeable
+import java.io.File
+import java.net.ServerSocket
+import kotlin.concurrent.thread
+
+val options = Options().apply {
+    addOption("p", "port", true, "Server port")
+}
+
+fun main(args: Array<String>) {
+    Logger.i("Initializing cvauto android server")
+    val cmd = DefaultParser().parse(options, args)
+    when {
+        cmd.hasOption("p") -> Server.port = cmd.getOptionValue("p")?.toIntOrNull() ?: error("Invalid port")
+    }
+    Server.run()
+}
+
+object Server : Thread(), Closeable {
+    var port = 8080
+    lateinit var serverSocket: ServerSocket
+    lateinit var serverHandler: Handler
+
+    override fun run() {
+        spawnLooper()
+        serverSocket = ServerSocket(port)
+        Logger.i("Listening on port $port")
+        while (!serverSocket.isClosed) {
+            SocketHandler(serverSocket.accept()).run()
+        }
+        Logger.i("Server closed")
+    }
+
+    override fun close() {
+        serverSocket.close()
+    }
+
+    private fun spawnLooper() {
+        thread(name = "Server Looper") {
+            Looper.prepare()
+            serverHandler = Handler()
+            Looper.loop()
+        }
+    }
 }
