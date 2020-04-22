@@ -12,6 +12,7 @@ import java.awt.image.*
 import java.io.DataInputStream
 import java.io.EOFException
 import java.io.IOException
+import java.net.Socket
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
@@ -32,12 +33,16 @@ class AndroidRegion(
         private var lastCaptureTime = System.currentTimeMillis()
         private var _captureFPS = 0.0
 
+        private var frameSocket: Socket? = null
+
         init {
             Runtime.getRuntime().addShutdownHook(Thread {
                 screenRecordProcess?.destroy()
             })
         }
     }
+
+    var useServer: Boolean = true
 
     /**
      * Enables fast capture mode, applies to all [AndroidRegion]
@@ -58,10 +63,14 @@ class AndroidRegion(
     val captureFPS get() = _captureFPS
 
     override fun capture(): BufferedImage {
-        val capture = if (fastCaptureMode) {
-            doFastCapture().getSubimage(x, y, width, height)
+        val capture = if (useServer) {
+            doServerCapture().getSubimage(x, y, width, height)
         } else {
-            doNormalCapture().getSubimage(x, y, width, height)
+            if (fastCaptureMode) {
+                doFastCapture().getSubimage(x, y, width, height)
+            } else {
+                doNormalCapture().getSubimage(x, y, width, height)
+            }
         }
         if (device.screens.contains(this)) _lastScreenCapture = System.currentTimeMillis() to capture
         return capture
@@ -193,6 +202,29 @@ class AndroidRegion(
             device.properties.displayWidth,
             device.properties.displayHeight
         )
+    }
+
+    private fun doServerCapture(): BufferedImage {
+        if (frameSocket == null || frameSocket?.isClosed == true) {
+            val s = device.server.openFrameSocket()
+            thread(isDaemon = true) {
+                val inputStream = DataInputStream(s.getInputStream())
+                while (useServer) {
+                    lastCapture = try {
+                        createByteRGBBufferedImage(device.properties.displayWidth, device.properties.displayHeight, true)
+                            .apply { inputStream.readFully((raster.dataBuffer as DataBufferByte).data) }
+                    } catch (e: Exception) {
+                        break
+                    }
+                    val current = System.currentTimeMillis()
+                    _captureFPS = (captureFPS + 1000.0 / (current - lastCaptureTime)) / 2
+                    lastCaptureTime = current
+                }
+                _captureFPS = 0.0
+            }
+        }
+        while (lastCapture == null) Thread.sleep(10)
+        return lastCapture!!
     }
 
     @Throws(NegativeArraySizeException::class)
