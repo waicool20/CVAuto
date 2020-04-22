@@ -6,7 +6,6 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-import kotlin.concurrent.thread
 
 /**
  * Utility class to help starting the server instance on the device and getting sockets for communication
@@ -30,7 +29,7 @@ class AndroidServer(
 
     init {
         port = selectNewPort()
-        Runtime.getRuntime().addShutdownHook(thread {
+        Runtime.getRuntime().addShutdownHook(Thread {
             serverProcess?.destroy()
         })
     }
