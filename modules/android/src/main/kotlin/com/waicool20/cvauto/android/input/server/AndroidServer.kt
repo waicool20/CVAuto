@@ -8,6 +8,9 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import kotlin.concurrent.thread
 
+/**
+ * Utility class to help starting the server instance on the device and getting sockets for communication
+ */
 class AndroidServer(
     private val device: AndroidDevice
 ) {

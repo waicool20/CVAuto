@@ -6,7 +6,7 @@ import com.waicool20.cvauto.core.input.IInput
 class AndroidServerInput internal constructor(device: AndroidDevice) : IInput {
     companion object {
         const val INPUT_TOUCH = 0
-        const val INPUT_KEY = 0
+        const val INPUT_KEY = 1
     }
 
     override val mouse = null

@@ -74,10 +74,10 @@ class AndroidKeyboard private constructor(
 
     override fun type(string: String, speed: CharactersPerSecond) {
         string.forEach { c ->
-            if (Key.requiresShift(c)) keyDown("SHIFT")
+            if (KeyUtils.requiresShift(c)) keyDown("SHIFT")
             keyDown("$c")
             keyUp("$c")
-            if (Key.requiresShift(c)) keyUp("SHIFT")
+            if (KeyUtils.requiresShift(c)) keyUp("SHIFT")
             TimeUnit.MILLISECONDS.sleep(
                 (1000.0 / speed * (1 + Random.nextDouble(
                     -settings.typingSpeedVariance,

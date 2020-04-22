@@ -681,15 +681,6 @@ enum class Key(val code: Long) {
         )
         //</editor-fold>
 
-        private val shiftChars = "~!@#$%^&*()_+{}|:\"<>?"
-        /**
-         * Checks if a given character needs shift to be pressed to be typed
-         *
-         * @param char Character to check
-         * @return true if shift is needed
-         */
-        fun requiresShift(char: Char) = char.isUpperCase() || shiftChars.contains(char)
-
         private val puncMapping = mapOf(
             ' ' to KEY_SPACE,
             '~' to KEY_GREEN,
