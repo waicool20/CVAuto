@@ -37,8 +37,14 @@ object Server : Thread(), Closeable {
         spawnLooper()
         serverSocket = ServerSocket(port)
         Logger.i("Listening on port $port")
-        while (!serverSocket.isClosed) {
-            SocketHandler(serverSocket.accept()).run()
+        while (true) {
+            try {
+                Logger.i("Waiting for connection...")
+                SocketHandler(serverSocket.accept()).start()
+                Logger.i("Spawned handler")
+            } catch (e: Exception) {
+                break
+            }
         }
         Logger.i("Server closed")
     }
