@@ -90,8 +90,6 @@ class InputHandler(private val socket: Socket) : Handler {
             }
         }
 
-        Logger.i("Action: $action, Slot: $slot, x: $x, y: $y, $touchMajor, $pressure | $touches")
-
         val motionEvent = MotionEvent.obtain(
             pointer.lastTouchTime, now, action, touches,
             p, c, 0, 0, 1f, 1f,
@@ -105,6 +103,8 @@ class InputHandler(private val socket: Socket) : Handler {
         val keycode = inputStream.readInt()
         val repeat = inputStream.readInt()
         val metaState = inputStream.readInt()
+
+        Logger.i("Action: $action | Code: $keycode")
 
         val now = SystemClock.uptimeMillis()
         val keyEvent = KeyEvent(
