@@ -5,7 +5,6 @@ import android.os.Looper
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.Options
 import java.io.Closeable
-import java.io.File
 import java.net.ServerSocket
 import kotlin.concurrent.thread
 
@@ -23,6 +22,13 @@ fun main(args: Array<String>) {
 }
 
 object Server : Thread(), Closeable {
+    const val RESPONSE_OK = 0
+    const val RESPONSE_ERR = 1
+
+    const val MODE_TEST = 0
+    const val MODE_FRAME = 1
+    const val MODE_INPUT = 2
+
     var port = 8080
     lateinit var serverSocket: ServerSocket
     lateinit var serverHandler: Handler

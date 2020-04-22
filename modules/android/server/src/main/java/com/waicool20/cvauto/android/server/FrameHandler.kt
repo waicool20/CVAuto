@@ -3,13 +3,12 @@ package com.waicool20.cvauto.android.server
 import android.graphics.PixelFormat
 import android.media.ImageReader
 import android.view.IRotationWatcher
-import java.io.Closeable
 import java.net.Socket
 import java.net.SocketException
 import kotlin.math.min
 import kotlin.system.measureTimeMillis
 
-class FrameHandler(private val socket: Socket) : Closeable, ImageReader.OnImageAvailableListener {
+class FrameHandler(private val socket: Socket) : Handler, ImageReader.OnImageAvailableListener {
     private val outputStream = socket.getOutputStream()
     private val writeBuffer = ByteArray(8192)
     private val imageReader = ImageReader.newInstance(Device.width, Device.height, PixelFormat.RGBA_8888, 2)
@@ -33,7 +32,7 @@ class FrameHandler(private val socket: Socket) : Closeable, ImageReader.OnImageA
             measureTimeMillis {
                 var rem: Int
                 while (imageBuffer.hasRemaining()) {
-                    rem = min(imageBuffer.remaining(),  writeBuffer.size)
+                    rem = min(imageBuffer.remaining(), writeBuffer.size)
                     imageBuffer.get(writeBuffer, 0, rem)
                     outputStream.write(writeBuffer, 0, rem)
                 }
@@ -55,7 +54,7 @@ class FrameHandler(private val socket: Socket) : Closeable, ImageReader.OnImageA
         Logger.i("Closed frame handler")
     }
 
-    fun waitFor() {
+    override fun waitFor() {
         while (!socket.isClosed) Thread.sleep(100)
     }
 }
