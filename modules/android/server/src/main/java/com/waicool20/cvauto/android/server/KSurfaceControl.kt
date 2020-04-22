@@ -12,6 +12,10 @@ object KSurfaceControl {
         cls.getMethod("createDisplay", String::class.java, Boolean::class.javaPrimitiveType)
     }
 
+    private val destroyDisplayMethod by lazy {
+        cls.getMethod("destroyDisplay", IBinder::class.java)
+    }
+
     private val openTransactionMethod by lazy { cls.getMethod("openTransaction") }
     private val closeTransactionMethod by lazy { cls.getMethod("closeTransaction") }
 
@@ -35,6 +39,10 @@ object KSurfaceControl {
 
     fun createDisplay(name: String, secure: Boolean): IBinder {
         return createDisplayMethod.invoke(null, name, secure) as IBinder
+    }
+
+    fun destroyDisplay(display: IBinder) {
+        destroyDisplayMethod.invoke(null, display)
     }
 
     fun openTransaction() {

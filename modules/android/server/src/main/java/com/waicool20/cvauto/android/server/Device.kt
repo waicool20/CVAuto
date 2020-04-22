@@ -3,6 +3,7 @@ package com.waicool20.cvauto.android.server
 import android.content.res.Configuration
 import android.graphics.Point
 import android.graphics.Rect
+import android.os.IBinder
 import android.view.IRotationWatcher
 import android.view.MotionEvent
 import android.view.Surface
@@ -38,8 +39,11 @@ object Device {
     val height: Int get() = displaySize.y
     val rect: Rect get() = Rect(0, 0, width, height)
 
+    private var display: IBinder? = null
+
     fun registerSurface(surface: Surface) {
         val display = KSurfaceControl.createDisplay("server", false)
+        this.display = display
         KSurfaceControl.openTransaction();
         try {
             KSurfaceControl.setDisplaySurface(display, surface);
@@ -48,6 +52,10 @@ object Device {
         } finally {
             KSurfaceControl.closeTransaction();
         }
+    }
+
+    fun clearSurfaces() {
+        display?.let { KSurfaceControl.destroyDisplay(it) }
     }
 
     private fun updateDeviceInfo() {

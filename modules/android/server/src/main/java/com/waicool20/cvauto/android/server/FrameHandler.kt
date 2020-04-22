@@ -13,18 +13,6 @@ class FrameHandler(private val socket: Socket) : Handler, ImageReader.OnImageAva
     private val writeBuffer = ByteArray(8192)
     private val imageReader = ImageReader.newInstance(Device.width, Device.height, PixelFormat.RGBA_8888, 2)
 
-    init {
-        Logger.i("Initializing new frame handler")
-        imageReader.setOnImageAvailableListener(this, Server.serverHandler)
-        KServiceManager.windowManager.watchRotation(object : IRotationWatcher.Stub() {
-            override fun onRotationChanged(rotation: Int) {
-                Logger.i("Device rotated, closing frame handler")
-                close()
-            }
-        }, Device.DEFAULT_DISPLAY)
-        Device.registerSurface(imageReader.surface)
-    }
-
     override fun onImageAvailable(reader: ImageReader) {
         val image = reader.acquireLatestImage()
         try {
@@ -50,11 +38,22 @@ class FrameHandler(private val socket: Socket) : Handler, ImageReader.OnImageAva
 
     override fun close() {
         imageReader.close()
+        Device.clearSurfaces()
         socket.close()
         Logger.i("Closed frame handler")
     }
 
     override fun waitFor() {
+        Logger.i("Initializing new frame handler")
+        imageReader.setOnImageAvailableListener(this, Server.serverHandler)
+        KServiceManager.windowManager.watchRotation(object : IRotationWatcher.Stub() {
+            override fun onRotationChanged(rotation: Int) {
+                Logger.i("Device rotated, closing frame handler")
+                close()
+            }
+        }, Device.DEFAULT_DISPLAY)
+        Device.registerSurface(imageReader.surface)
         while (!socket.isClosed) Thread.sleep(100)
+        close()
     }
 }
