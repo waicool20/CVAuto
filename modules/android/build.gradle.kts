@@ -24,7 +24,6 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.5.2")
 }
 
-
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8.toString()
@@ -34,5 +33,13 @@ tasks.withType<KotlinCompile> {
             "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
             "-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi"
         )
+    }
+}
+
+tasks.named<Copy>("processResources") {
+    dependsOn("server:build")
+    from(projectDir.resolve("server/build/outputs/apk/release")) {
+        include("**/*.apk")
+        rename("server-(.*?).apk", "server.apk")
     }
 }
