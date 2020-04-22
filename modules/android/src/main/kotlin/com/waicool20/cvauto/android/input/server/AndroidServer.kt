@@ -36,8 +36,6 @@ class AndroidServer(
     fun openInputSocket() = openSocket(MODE_INPUT)
 
     private tailrec fun openSocket(mode: Int): Socket {
-        ADB.execute("forward", "--remove-all").waitFor()
-        ADB.execute("forward", "tcp:$port", "tcp:$port").waitFor()
         if (serverProcess == null || serverProcess?.isAlive == false) spawnNewServer()
         val s = Socket("127.0.0.1", port)
         s.getOutputStream().write(mode)
@@ -61,6 +59,8 @@ class AndroidServer(
 
     private fun spawnNewServer() {
         println("Android server will run on port: $port")
+        ADB.execute("forward", "--remove-all").waitFor()
+        ADB.execute("forward", "tcp:$port", "tcp:$port").waitFor()
         val i = javaClass.getResourceAsStream("/server.apk")
         Files.copy(i, apkPath, StandardCopyOption.REPLACE_EXISTING)
         ADB.execute("push", "$apkPath", "/data/local/tmp").waitFor()
