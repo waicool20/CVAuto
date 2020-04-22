@@ -5,6 +5,7 @@ import java.net.URL
 import java.nio.channels.Channels
 import java.nio.channels.FileChannel
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.zip.ZipInputStream
@@ -14,7 +15,7 @@ import java.util.zip.ZipInputStream
  * if it doesn't exist
  */
 object ADB {
-    private val dataDir = Paths.get(System.getProperty("user.home")).resolve(".cvauto/android")
+    val dataDir: Path = Paths.get(System.getProperty("user.home")).resolve(".cvauto/android")
     private val platformToolsDir = dataDir.resolve("platform-tools")
     private val adbBinaryPath = run {
         val os = System.getProperty("os.name").toLowerCase()

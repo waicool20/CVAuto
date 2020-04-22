@@ -1,6 +1,8 @@
 package com.waicool20.cvauto.android
 
+import com.waicool20.cvauto.android.input.server.AndroidServer
 import com.waicool20.cvauto.android.input.AndroidInput
+import com.waicool20.cvauto.android.input.server.AndroidServerInput
 import com.waicool20.cvauto.core.IDevice
 import com.waicool20.cvauto.core.Pixels
 
@@ -51,7 +53,9 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
         )
     }
 
-    override val input = AndroidInput(this)
+    val server by lazy { AndroidServer(this) }
+
+    override val input = AndroidServerInput(this)
     override val screens: List<AndroidRegion> =
         listOf(AndroidRegion(0, 0, properties.displayWidth, properties.displayHeight, this, 0))
 
