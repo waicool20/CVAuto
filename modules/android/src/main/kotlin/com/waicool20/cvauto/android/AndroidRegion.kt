@@ -11,7 +11,6 @@ import java.awt.color.ColorSpace
 import java.awt.image.*
 import java.io.DataInputStream
 import java.io.EOFException
-import java.io.IOException
 import java.net.Socket
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -205,26 +204,18 @@ class AndroidRegion(
     }
 
     private fun doServerCapture(): BufferedImage {
-        if (frameSocket == null || frameSocket?.isClosed == true) {
-            val s = device.server.openFrameSocket()
-            thread(isDaemon = true) {
-                val inputStream = DataInputStream(s.getInputStream())
-                while (useServer) {
-                    lastCapture = try {
-                        createByteRGBBufferedImage(device.properties.displayWidth, device.properties.displayHeight, true)
-                            .apply { inputStream.readFully((raster.dataBuffer as DataBufferByte).data) }
-                    } catch (e: Exception) {
-                        break
-                    }
-                    val current = System.currentTimeMillis()
-                    _captureFPS = (captureFPS + 1000.0 / (current - lastCaptureTime)) / 2
-                    lastCaptureTime = current
-                }
-                _captureFPS = 0.0
-            }
+        val c = lastCapture
+        if (c != null && System.currentTimeMillis() - lastCaptureTime < 10) {
+            return c
         }
-        while (lastCapture == null) Thread.sleep(10)
-        return lastCapture!!
+        val socket = device.server.openFrameSocket()
+        val inputStream = DataInputStream(socket.getInputStream())
+        val img = createByteRGBBufferedImage(device.properties.displayWidth, device.properties.displayHeight, true)
+            .apply { inputStream.readFully((raster.dataBuffer as DataBufferByte).data) }
+        lastCapture = img
+        lastCaptureTime = System.currentTimeMillis()
+        socket.close()
+        return img
     }
 
     @Throws(NegativeArraySizeException::class)

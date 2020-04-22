@@ -1,5 +1,6 @@
 package com.waicool20.cvauto.android.server
 
+import android.graphics.Bitmap
 import android.graphics.Rect
 import android.os.IBinder
 import android.view.Surface
@@ -37,6 +38,12 @@ object KSurfaceControl {
         cls.getMethod("setDisplayLayerStack", IBinder::class.java, Int::class.javaPrimitiveType)
     }
 
+    private val screenshotMethod by lazy {
+        cls.getMethod("screenshot",
+            Int::class.javaPrimitiveType,
+            Int::class.javaPrimitiveType)
+    }
+
     fun createDisplay(name: String, secure: Boolean): IBinder {
         return createDisplayMethod.invoke(null, name, secure) as IBinder
     }
@@ -63,5 +70,9 @@ object KSurfaceControl {
 
     fun setDisplayLayerStack(display: IBinder, layerStack: Int) {
         setDisplayLayerStackMethod.invoke(null, display, layerStack)
+    }
+
+    fun screenshot(width: Int, height: Int): Bitmap {
+        return screenshotMethod.invoke(null, width, height) as Bitmap
     }
 }
