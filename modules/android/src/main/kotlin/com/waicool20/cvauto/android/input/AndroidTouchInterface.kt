@@ -66,7 +66,7 @@ class AndroidTouchInterface private constructor(
                 println("No touch interface found for device ${device.serial}")
                 return null
             }
-            val devFile = DeviceFile(inputInfo[0].takeLastWhile { it != ' ' })
+            val devFile = DeviceFile(inputInfo[0].takeLastWhile { !it.isWhitespace() })
             val touchSpecs = inputInfo.drop(2)
                 .mapNotNull(Specs.Companion::parse).toMap()
             return AndroidTouchInterface(device, devFile, touchSpecs)
@@ -87,7 +87,7 @@ class AndroidTouchInterface private constructor(
 
         // Keep track of the x y coordinates by monitoring the input event bus
         thread(isDaemon = true) {
-            device.executeShell("getevent $devFile").lineSequence().forEach {
+            device.executeShell("getevent", devFile.path).lineSequence().forEach {
                 val (_, sCode, sValue) = it.trim().split(Regex("\\s+"))
                 val eventCode = sCode.toLong(16)
                 val value = sValue.toLong(16)
