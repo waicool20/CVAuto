@@ -1,5 +1,5 @@
 allprojects {
-    group = "com.waicool20.cvauto"
+    group = "com.waicool20"
     repositories {
         mavenCentral()
     }

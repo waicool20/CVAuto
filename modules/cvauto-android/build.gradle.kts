@@ -17,7 +17,7 @@ dependencies {
     implementation("org.jetbrains.kotlin", "kotlin-reflect", versions.Kotlin)
     implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", versions.KotlinCoroutines)
 
-    api(project(":modules:core"))
+    api(project(":modules:cvauto-core"))
 
     // Tests
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.5.2")
