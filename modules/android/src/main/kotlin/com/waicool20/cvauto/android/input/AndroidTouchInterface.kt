@@ -6,7 +6,9 @@ import com.waicool20.cvauto.android.readText
 import com.waicool20.cvauto.core.Millis
 import com.waicool20.cvauto.core.input.ITouchInterface
 import com.waicool20.cvauto.util.Animations
-import java.util.Collections
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.math.*
@@ -72,6 +74,7 @@ class AndroidTouchInterface private constructor(
     }
 
     private val _touches: List<ITouchInterface.Touch>
+    private val writeBuffer = ByteArray(16)
 
     override val settings = AndroidTouchInterfaceSettings()
 
@@ -212,7 +215,20 @@ class AndroidTouchInterface private constructor(
 
     private fun sendEvent(type: EventType, event: InputEvent, value: Long) {
         if (LOG_INPUT_EVENTS) println("sendevent ${devFile.path} $type(${type.code}) $event(${event.code}) $value")
-        device.execute("sendevent ${devFile.path} ${type.code} ${event.code} '$value'").waitFor()
+        ByteBuffer.wrap(writeBuffer)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .putInt(0).putInt(0) // Event time can be left as 0
+                .putShort(type.code.toShort())
+                .putShort(event.code.toShort())
+                .putInt(value.toInt())
+        try {
+            device.input.getDeviceFileOutputStream(devFile).apply {
+                write(writeBuffer)
+                write("".toByteArray())
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun valueToCoord(value: Long, event: InputEvent): Int {

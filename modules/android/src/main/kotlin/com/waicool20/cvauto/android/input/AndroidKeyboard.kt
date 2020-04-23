@@ -4,6 +4,8 @@ import com.waicool20.cvauto.android.AndroidDevice
 import com.waicool20.cvauto.android.readText
 import com.waicool20.cvauto.core.input.CharactersPerSecond
 import com.waicool20.cvauto.core.input.IKeyboard
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToLong
@@ -45,6 +47,7 @@ class AndroidKeyboard private constructor(
     }
 
     private val _heldKeys = mutableListOf<String>()
+    private val writeBuffer = ByteArray(16)
 
     override val settings: AndroidKeyboardSettings = AndroidKeyboardSettings()
 
@@ -98,10 +101,36 @@ class AndroidKeyboard private constructor(
     }
 
     private fun sendEvent(devFile: String, type: EventType, code: InputEvent, value: Long) {
-        device.execute("sendevent $devFile ${type.code} ${code.code} $value").readText()
+        ByteBuffer.wrap(writeBuffer)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .putInt(0).putInt(0) // Event time can be left as 0
+                .putShort(type.code.toShort())
+                .putShort(code.code.toShort())
+                .putInt(value.toInt())
+        try {
+            device.input.getDeviceFileOutputStream(DeviceFile(devFile)).apply {
+                write(writeBuffer)
+                write("".toByteArray())
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun sendKeyEvent(key: Key, devFile: String, event: InputEvent) {
-        device.execute("sendevent $devFile ${EventType.EV_KEY.code} ${key.code} ${event.code}").readText()
+        ByteBuffer.wrap(writeBuffer)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .putInt(0).putInt(0) // Event time can be left as 0
+                .putShort(EventType.EV_KEY.code.toShort())
+                .putShort(key.code.toShort())
+                .putInt(event.code.toInt())
+        try {
+            device.input.getDeviceFileOutputStream(DeviceFile(devFile)).apply {
+                write(writeBuffer)
+                write("".toByteArray())
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }
