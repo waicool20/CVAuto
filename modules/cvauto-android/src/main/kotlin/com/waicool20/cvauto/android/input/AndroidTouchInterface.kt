@@ -87,7 +87,9 @@ class AndroidTouchInterface private constructor(
 
         // Keep track of the x y coordinates by monitoring the input event bus
         thread(isDaemon = true) {
-            device.executeShell("getevent", devFile.path).lineSequence().forEach {
+            val process = device.executeShell("getevent", devFile.path)
+            Runtime.getRuntime().addShutdownHook(Thread { process.destroy() })
+            process.lineSequence().forEach {
                 val (_, sCode, sValue) = it.trim().split(Regex("\\s+"))
                 val eventCode = sCode.toLong(16)
                 val value = sValue.toLong(16)
