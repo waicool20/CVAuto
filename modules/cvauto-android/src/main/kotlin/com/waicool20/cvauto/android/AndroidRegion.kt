@@ -152,6 +152,8 @@ class AndroidRegion(
                     inputStream.close()
                     continue
                 }
+                if (device.screens[screen].width != width) device.screens[screen].width = width
+                if (device.screens[screen].height != height) device.screens[screen].height = height
                 inputStream.skip(8)
                 val img = createByteRGBBufferedImage(width, height, true)
                 inputStream.readFully((img.raster.dataBuffer as DataBufferByte).data)
