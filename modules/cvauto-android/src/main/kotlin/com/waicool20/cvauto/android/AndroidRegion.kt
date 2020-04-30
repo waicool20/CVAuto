@@ -166,8 +166,7 @@ class AndroidRegion(
                 process.destroy()
             }
         }
-        throwables.forEach { it.printStackTrace() }
-        error("Could not capture region due to various errors")
+        throw throwables.reduce { acc, _ -> Exception(acc) }
     }
 
     private fun doFastCapture(): BufferedImage {
