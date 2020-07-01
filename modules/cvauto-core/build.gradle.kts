@@ -22,8 +22,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", versions.KotlinCoroutines)
 
     //api("org.bytedeco", "javacv-platform", "1.5.1")
-    api("org.boofcv:boofcv-core")
-    api("org.boofcv:boofcv-swing")
+    api("org.boofcv", "boofcv-core", "0.36.1")
+    api("org.boofcv", "boofcv-swing", "0.36.1")
 }
 
 tasks.withType<KotlinCompile> {
