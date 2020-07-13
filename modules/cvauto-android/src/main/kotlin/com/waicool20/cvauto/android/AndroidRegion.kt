@@ -31,6 +31,7 @@ class AndroidRegion(
         private var lastCapture: BufferedImage? = null
         private var lastCaptureTime = System.currentTimeMillis()
         private var _captureFPS = 0.0
+        private val normalCapturing = AtomicBoolean(false)
 
         init {
             Runtime.getRuntime().addShutdownHook(Thread {
@@ -58,13 +59,17 @@ class AndroidRegion(
     val captureFPS get() = _captureFPS
 
     override fun capture(): BufferedImage {
-        val capture = if (fastCaptureMode) {
-            doFastCapture().getSubimage(x, y, width, height)
-        } else {
-            doNormalCapture().getSubimage(x, y, width, height)
+        val last = device.screens[screen]._lastScreenCapture
+        if (last != null && (normalCapturing.get() || System.currentTimeMillis() - last.first <= 66)) {
+            return last.second.getSubimage(x, y, width, height)
         }
-        if (device.screens.contains(this)) _lastScreenCapture = System.currentTimeMillis() to capture
-        return capture
+        val capture = if (fastCaptureMode) {
+            doFastCapture()
+        } else {
+            doNormalCapture()
+        }
+        device.screens[screen]._lastScreenCapture = System.currentTimeMillis() to capture
+        return capture.getSubimage(x, y, width, height)
     }
 
     override fun mapRectangleToRegion(rect: Rectangle): Region<AndroidDevice> {
@@ -139,6 +144,7 @@ class AndroidRegion(
     }
 
     private fun doNormalCapture(): BufferedImage {
+        normalCapturing.set(true)
         val throwables = mutableListOf<Throwable>()
         for (i in 0 until 10) {
             val process = device.execute("screencap")
@@ -158,6 +164,7 @@ class AndroidRegion(
                 val img = createByteRGBBufferedImage(width, height, true)
                 inputStream.readFully((img.raster.dataBuffer as DataBufferByte).data)
                 inputStream.close()
+                normalCapturing.set(false)
                 return img
             } catch (t: Throwable) {
                 throwables.add(t)
