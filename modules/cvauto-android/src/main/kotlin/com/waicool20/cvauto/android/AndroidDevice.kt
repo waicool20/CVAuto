@@ -56,7 +56,7 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
         listOf(AndroidRegion(0, 0, properties.displayWidth, properties.displayHeight, this, 0))
 
     /**
-     * Checks if the showing pointer information
+     * Checks if device is showing pointer information
      *
      * @returns True if pointer info is on screen
      */
@@ -78,6 +78,31 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
      */
     fun togglePointerInfo() {
         executeShell("settings put system pointer_location ${if (isShowingPointerInfo()) "0" else "1"}")
+    }
+
+    /**
+     * Checks if device is showing touches
+     *
+     * @returns True if touches are shown on screen
+     */
+    fun isShowingTouches(): Boolean {
+        return executeShell("settings get system show_touches").readText().contains("1")
+    }
+
+    /**
+     * Controls whether or not to show touches on screen
+     *
+     * @param display Displays touches if True
+     */
+    fun showTouches(display: Boolean) {
+        executeShell("settings put system show_touches ${if (display) "1" else "0"}")
+    }
+
+    /**
+     * Toggles show touches
+     */
+    fun toggleTouches() {
+        executeShell("settings put system show_touches ${if (isShowingTouches()) "0" else "1"}")
     }
 
     /**
