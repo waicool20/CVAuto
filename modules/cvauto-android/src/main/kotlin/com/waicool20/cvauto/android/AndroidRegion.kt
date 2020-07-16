@@ -149,7 +149,6 @@ class AndroidRegion(
         normalCapturing.set(true)
         val throwables = mutableListOf<Throwable>()
         for (i in 0 until 10) {
-            val start = System.currentTimeMillis()
             val process = device.execute("screencap | toybox gzip -1")
             val inputStream = DataInputStream(GZIPInputStream(process.inputStream))
             try {
@@ -168,7 +167,6 @@ class AndroidRegion(
                 inputStream.readFully((img.raster.dataBuffer as DataBufferByte).data)
                 inputStream.close()
                 normalCapturing.set(false)
-                println(System.currentTimeMillis() - start)
                 return img
             } catch (t: Throwable) {
                 throwables.add(t)
