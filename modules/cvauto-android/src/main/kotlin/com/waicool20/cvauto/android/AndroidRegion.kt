@@ -9,11 +9,13 @@ import com.waicool20.cvauto.util.matching.ITemplateMatcher
 import java.awt.Rectangle
 import java.awt.color.ColorSpace
 import java.awt.image.*
+import java.io.BufferedInputStream
 import java.io.DataInputStream
 import java.io.EOFException
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.zip.GZIPInputStream
 import kotlin.concurrent.thread
 import kotlin.math.roundToInt
 
@@ -147,8 +149,9 @@ class AndroidRegion(
         normalCapturing.set(true)
         val throwables = mutableListOf<Throwable>()
         for (i in 0 until 10) {
-            val process = device.execute("screencap")
-            val inputStream = DataInputStream(process.inputStream)
+            val start = System.currentTimeMillis()
+            val process = device.execute("screencap | toybox gzip -1")
+            val inputStream = DataInputStream(GZIPInputStream(process.inputStream))
             try {
                 val width = inputStream.read() or (inputStream.read() shl 8) or
                         (inputStream.read() shl 16) or (inputStream.read() shl 24)
@@ -165,6 +168,7 @@ class AndroidRegion(
                 inputStream.readFully((img.raster.dataBuffer as DataBufferByte).data)
                 inputStream.close()
                 normalCapturing.set(false)
+                println(System.currentTimeMillis() - start)
                 return img
             } catch (t: Throwable) {
                 throwables.add(t)
