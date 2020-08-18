@@ -28,24 +28,22 @@ object Animations {
     }
 
     class TimedAnimationSequence(
-        steps: Long,
-        duration: Millis,
+        private val steps: Long,
+        private val duration: Millis,
         sequence: Sequence<Double>
     ) : Sequence<Double> {
         private val values = sequence.toList()
-        private val sleepPerStep = duration / steps
-        private var lastTime = -1L
-        private var currentStep = 0
 
         override fun iterator(): Iterator<Double> = object : Iterator<Double> {
+            private val sleepPerStep = (duration / steps).coerceAtLeast(1)
+            private var lastTime = -1L
+            private var currentStep = 0
+
             override fun next(): Double {
-                if (lastTime == -1L) {
-                    lastTime = System.currentTimeMillis()
-                    TimeUnit.MILLISECONDS.sleep(sleepPerStep)
-                    return values[currentStep++]
-                }
-                val dif = System.currentTimeMillis() - lastTime
-                lastTime = System.currentTimeMillis()
+                val now = System.currentTimeMillis()
+                if (lastTime == -1L) lastTime = now
+                val dif = now - lastTime
+                lastTime = now
                 return if (dif < sleepPerStep) {
                     TimeUnit.MILLISECONDS.sleep(sleepPerStep - dif)
                     values[currentStep++]
