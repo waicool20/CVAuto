@@ -154,7 +154,11 @@ class AndroidTouchInterface private constructor(
         swipes.forEach { touchMove(it.slot, it.x1, it.y1) }
         swipes.forEach { touchDown(it.slot) }
         eventSync()
-        Animations.EaseInOutQuad(1000).timed(duration).forEach { p ->
+
+        val dist = swipes.maxOf {
+            (it.x2 - it.x1) * (it.x2 - it.x1) + (it.y2 - it.y1) * (it.y2 - it.y1)
+        }.toDouble()
+        Animations.EaseInOutQuad((sqrt(dist) / 2).roundToLong()).timed(duration).forEach { p ->
             swipes.forEach { swipe ->
                 val dy = (swipe.y2 - swipe.y1).toDouble()
                 val dx = (swipe.x2 - swipe.x1).toDouble()
