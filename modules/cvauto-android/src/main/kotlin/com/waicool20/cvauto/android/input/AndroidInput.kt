@@ -30,7 +30,7 @@ class AndroidInput internal constructor(private val device: AndroidDevice) : IIn
         val process = device.executeShell("sh", "-c", "'toybox nc -l -p $port >${deviceFile.path}'")
         Runtime.getRuntime().addShutdownHook(Thread { process.destroy() })
 
-        ADB.execute("forward", "tcp:$port", "tcp:$port")
+        ADB.execute("-s", device.serial, "forward", "tcp:$port", "tcp:$port")
 
         Thread.sleep(1000) // Needed otherwise socket sometimes doesnt connect to netcat properly
         val newSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
@@ -39,7 +39,7 @@ class AndroidInput internal constructor(private val device: AndroidDevice) : IIn
     }
 
     private fun getNextAvailablePort(): Int {
-        var port = -1
+        var port: Int? = null
         for (i in 8080..8180) {
             try {
                 val s = ServerSocket(i)
@@ -50,6 +50,6 @@ class AndroidInput internal constructor(private val device: AndroidDevice) : IIn
                 continue
             }
         }
-        return port
+        return port ?: error("Cannot find available port in range 8080-8180")
     }
 }
