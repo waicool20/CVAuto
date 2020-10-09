@@ -6,14 +6,12 @@ import com.waicool20.cvauto.core.Region
 import com.waicool20.cvauto.core.input.IInput
 import com.waicool20.cvauto.core.input.ITouchInterface
 import com.waicool20.cvauto.util.matching.ITemplateMatcher
+import net.jpountz.lz4.LZ4FrameInputStream
 import java.awt.Rectangle
 import java.awt.color.ColorSpace
 import java.awt.image.*
-import java.io.BufferedInputStream
 import java.io.DataInputStream
 import java.io.EOFException
-import java.io.IOException
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPInputStream
 import kotlin.concurrent.thread
@@ -27,6 +25,10 @@ class AndroidRegion(
     device: AndroidDevice,
     screen: Int
 ) : Region<AndroidDevice>(x, y, width, height, device, screen) {
+    enum class CompressionMode {
+        NONE, GZIP, LZ4
+    }
+
     companion object {
         private val _fastCaptureMode = AtomicBoolean(false)
         private var screenRecordProcess: Process? = null
@@ -59,6 +61,16 @@ class AndroidRegion(
      * Frames per Second for device, only valid when using fast capture mode
      */
     val captureFPS get() = _captureFPS
+
+    /**
+     * Compression of the captured image can reduce the amount of time it takes to copy it
+     * from the emulator to pc memory, therefore reducing latency.
+     *
+     * - LZ4: Best latency, default
+     * - GZIP: Slower than LZ4 but still much better than NONE
+     * - NONE: No compression
+     */
+    var compressionMode = CompressionMode.LZ4
 
     override fun capture(): BufferedImage {
         val last = device.screens[screen]._lastScreenCapture
@@ -149,13 +161,26 @@ class AndroidRegion(
         normalCapturing.set(true)
         val throwables = mutableListOf<Throwable>()
         for (i in 0 until 10) {
-            val process = device.execute("screencap | toybox gzip -1")
-            val inputStream = DataInputStream(GZIPInputStream(process.inputStream))
+            val process: Process
+            val inputStream = when (compressionMode) {
+                CompressionMode.NONE -> {
+                    process = device.execute("screencap")
+                    DataInputStream(process.inputStream)
+                }
+                CompressionMode.GZIP -> {
+                    process = device.execute("screencap | toybox gzip -1")
+                    DataInputStream(GZIPInputStream(process.inputStream))
+                }
+                CompressionMode.LZ4 -> {
+                    process = device.execute("screencap | /data/local/tmp/lz4 -c -1")
+                    DataInputStream(LZ4FrameInputStream(process.inputStream))
+                }
+            }
             try {
                 val width = inputStream.read() or (inputStream.read() shl 8) or
-                        (inputStream.read() shl 16) or (inputStream.read() shl 24)
+                    (inputStream.read() shl 16) or (inputStream.read() shl 24)
                 val height = inputStream.read() or (inputStream.read() shl 8) or
-                        (inputStream.read() shl 16) or (inputStream.read() shl 24)
+                    (inputStream.read() shl 16) or (inputStream.read() shl 24)
                 if (width < 0 || height < 0) continue
                 if (device.screens[screen].width != width) device.screens[screen].width = width
                 if (device.screens[screen].height != height) device.screens[screen].height = height

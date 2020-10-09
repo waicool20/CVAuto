@@ -3,6 +3,8 @@ package com.waicool20.cvauto.android
 import com.waicool20.cvauto.android.input.AndroidInput
 import com.waicool20.cvauto.core.IDevice
 import com.waicool20.cvauto.core.Pixels
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Represents an android device
@@ -54,6 +56,26 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
     override val input = AndroidInput(this)
     override val screens: List<AndroidRegion> =
         listOf(AndroidRegion(0, 0, properties.displayWidth, properties.displayHeight, this, 0))
+
+    init {
+        // Push lz4 binary
+        val arch = execute("uname -m").readText().trim()
+        try {
+            val inStream = AndroidDevice::class.java.getResourceAsStream("/com/waicool20/cvauto/android/libs/$arch/lz4")
+            val tmp = Files.createTempDirectory("").resolve("lz4")
+            val outStream = Files.newOutputStream(tmp)
+            inStream.copyTo(outStream)
+            inStream.close()
+            outStream.close()
+            push(tmp, "/data/local/tmp")
+            executeShell("chmod +x /data/local/tmp/lz4")
+            Files.delete(tmp)
+            Files.delete(tmp.parent)
+        } catch (e: Exception) {
+            // Fallback to GZIP
+            screens.forEach { it.compressionMode = AndroidRegion.CompressionMode.GZIP }
+        }
+    }
 
     /**
      * Checks if device is showing pointer information
@@ -124,6 +146,21 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
      */
     fun executeShell(vararg args: String): Process {
         return ADB.execute("-s", serial, "shell", *args)
+    }
+
+    /**
+     * Transfer a file to this device
+     *
+     * @param local Path to file to push
+     * @param remote Remote path to push file to
+     *
+     * @return true if pushed successfully
+     */
+    fun push(local: Path, remote: String): Boolean {
+        return ADB.execute("-s", serial, "push", "${local.toAbsolutePath()}", remote).run {
+            waitFor()
+            exitValue() == 0
+        }
     }
 
 
