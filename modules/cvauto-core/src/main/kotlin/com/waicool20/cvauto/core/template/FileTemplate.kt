@@ -5,6 +5,7 @@ import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import javax.imageio.IIOException
 import javax.imageio.ImageIO
 
 /**
@@ -31,7 +32,11 @@ class FileTemplate(
     override val source: URI = path.toUri()
 
     override fun load(): BufferedImage {
-        return ImageIO.read(path.toFile())
+        try {
+            return ImageIO.read(path.toFile())
+        } catch (e: IIOException) {
+            throw Exception("Error reading file: ${path.toAbsolutePath()}", e)
+        }
     }
 
     override fun equals(other: Any?): Boolean {
