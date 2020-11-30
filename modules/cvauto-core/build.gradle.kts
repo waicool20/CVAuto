@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinPluginWrapper
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.4.0"
+    kotlin("jvm") version "1.4.20"
 }
 
 version = "1.0-SNAPSHOT"
@@ -14,7 +14,7 @@ repositories {
 dependencies {
     val versions = object {
         val Kotlin by lazy { plugins.getPlugin(KotlinPluginWrapper::class).kotlinPluginVersion }
-        val KotlinCoroutines = "1.3.9"
+        val KotlinCoroutines = "1.4.2"
     }
 
     implementation("org.jetbrains.kotlin", "kotlin-reflect", versions.Kotlin)
