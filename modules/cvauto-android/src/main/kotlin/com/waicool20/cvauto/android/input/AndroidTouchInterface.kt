@@ -89,16 +89,42 @@ class AndroidTouchInterface private constructor(
         thread(isDaemon = true) {
             val process = device.execute("getevent", devFile.path)
             Runtime.getRuntime().addShutdownHook(Thread { process.destroy() })
+            var slot = 0L
+            var x = 0
+            var y = 0
+            var isTouching = false
+            var isTouchEvent = false
+
             process.lineSequence().forEach {
                 val (_, sCode, sValue) = it.trim().split(Regex("\\s+"))
                 val eventCode = sCode.toLong(16)
                 val value = sValue.toLong(16)
                 when (eventCode) {
+                    InputEvent.ABS_MT_SLOT.code -> {
+                        slot = value
+                    }
                     InputEvent.ABS_MT_POSITION_X.code -> {
-                        _touches[0].cursorX = valueToCoord(value, InputEvent.ABS_MT_POSITION_X)
+                        x = valueToCoord(value, InputEvent.ABS_MT_POSITION_X)
                     }
                     InputEvent.ABS_MT_POSITION_Y.code -> {
-                        _touches[0].cursorY = valueToCoord(value, InputEvent.ABS_MT_POSITION_Y)
+                        y = valueToCoord(value, InputEvent.ABS_MT_POSITION_Y)
+                    }
+                    InputEvent.ABS_MT_TRACKING_ID.code -> {
+                        isTouchEvent = true
+                        isTouching = sValue != "ffffffff"
+                    }
+                    EventType.EV_SYN.code -> {
+                        if (isTouchEvent) {
+                            if (LOG_INPUT_EVENTS) println("Detected touch slot: $slot | x: $x | y: $y | isTouching: $isTouching")
+                            _touches[slot.toInt()].cursorX = x
+                            _touches[slot.toInt()].cursorY = y
+                            _touches[slot.toInt()].isTouching = isTouching
+                        }
+                    }
+                    else -> {
+                        if (value == InputEvent.KEY_UP.code || value == InputEvent.KEY_DOWN.code) {
+                            isTouchEvent = false
+                        }
                     }
                 }
             }
@@ -108,6 +134,7 @@ class AndroidTouchInterface private constructor(
     override fun touchUp(slot: Int) = synchronized(this) {
         if (_touches[slot].isTouching) {
             sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_SLOT, slot.toLong())
+            sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_PRESSURE, 0)
             sendEvent(EventType.EV_ABS, InputEvent.ABS_MT_TRACKING_ID, -1)
             _touches[slot].isTouching = false
         }
