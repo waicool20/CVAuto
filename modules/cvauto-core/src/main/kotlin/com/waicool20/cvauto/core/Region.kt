@@ -6,9 +6,7 @@ import com.waicool20.cvauto.util.area
 import com.waicool20.cvauto.util.asGrayF32
 import com.waicool20.cvauto.util.matching.DefaultTemplateMatcher
 import com.waicool20.cvauto.util.matching.ITemplateMatcher
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import kotlinx.coroutines.withTimeoutOrNull
 import java.awt.Point
 import java.awt.Rectangle
@@ -303,6 +301,7 @@ abstract class Region<T : IDevice>(
      * @param period Delay between each check/click
      * @param timeout When timeout is reached this function will stop clicking, use -1 to disable timeout
      * @param condition Boolean condition function
+     * @throws TimeoutCancellationException If timeout is enabled and function times out
      */
     suspend fun clickWhile(
         random: Boolean = true,
@@ -311,7 +310,7 @@ abstract class Region<T : IDevice>(
         condition: Region<T>.() -> Boolean
     ) {
         if (timeout > 0) {
-            withTimeoutOrNull(timeout) {
+            withTimeout(timeout) {
                 while (isActive && this@Region.condition()) {
                     click(random)
                     delay(period)
