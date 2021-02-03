@@ -12,6 +12,7 @@ import java.awt.color.ColorSpace
 import java.awt.image.*
 import java.io.DataInputStream
 import java.io.EOFException
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPInputStream
 import kotlin.concurrent.thread
@@ -25,6 +26,8 @@ class AndroidRegion(
     device: AndroidDevice,
     screen: Int
 ) : Region<AndroidDevice>(x, y, width, height, device, screen) {
+    private val executor = Executors.newCachedThreadPool()
+
     enum class CompressionMode {
         NONE, GZIP, LZ4
     }
@@ -73,17 +76,26 @@ class AndroidRegion(
     var compressionMode = CompressionMode.LZ4
 
     override fun capture(): BufferedImage {
-        val last = device.screens[screen]._lastScreenCapture
-        if (last != null && (normalCapturing.get() || System.currentTimeMillis() - last.first <= 66)) {
-            return last.second.getSubimage(x, y, width, height)
+        var img: BufferedImage? = null
+        val countDownLatch = CountDownLatch(1)
+        executor.execute {
+            val last = device.screens[screen]._lastScreenCapture
+            if (last != null && (normalCapturing.get() || System.currentTimeMillis() - last.first <= 66)) {
+                img = last.second.getSubimage(x, y, width, height)
+                countDownLatch.countDown()
+                return@execute
+            }
+            val capture = if (fastCaptureMode) {
+                doFastCapture()
+            } else {
+                doNormalCapture()
+            }
+            device.screens[screen]._lastScreenCapture = System.currentTimeMillis() to capture
+            img = capture.getSubimage(x, y, width, height)
+            countDownLatch.countDown()
         }
-        val capture = if (fastCaptureMode) {
-            doFastCapture()
-        } else {
-            doNormalCapture()
-        }
-        device.screens[screen]._lastScreenCapture = System.currentTimeMillis() to capture
-        return capture.getSubimage(x, y, width, height)
+        countDownLatch.await(CAPTURE_TIMEOUT, TimeUnit.MILLISECONDS)
+        return img ?: throw CaptureTimeoutException()
     }
 
     override fun mapRectangleToRegion(rect: Rectangle): Region<AndroidDevice> {
@@ -203,12 +215,15 @@ class AndroidRegion(
         if (screenRecordProcess == null || screenRecordProcess?.isAlive == false) {
             thread(isDaemon = true) {
                 screenRecordProcess?.destroy()
-                screenRecordProcess = device.execute("screenrecord", "--output-format=raw-frames", "-")
+                screenRecordProcess =
+                    device.execute("screenrecord", "--output-format=raw-frames", "-")
                 val inputStream = DataInputStream(screenRecordProcess!!.inputStream)
                 while (screenRecordProcess?.isAlive == true && fastCaptureMode) {
                     lastCapture = try {
-                        createByteRGBBufferedImage(device.properties.displayWidth, device.properties.displayHeight)
-                            .apply { inputStream.readFully((raster.dataBuffer as DataBufferByte).data) }
+                        createByteRGBBufferedImage(
+                            device.properties.displayWidth,
+                            device.properties.displayHeight
+                        ).apply { inputStream.readFully((raster.dataBuffer as DataBufferByte).data) }
                     } catch (e: EOFException) {
                         break
                     }
@@ -227,7 +242,11 @@ class AndroidRegion(
     }
 
     @Throws(NegativeArraySizeException::class)
-    private fun createByteRGBBufferedImage(width: Int, height: Int, hasAlpha: Boolean = false): BufferedImage {
+    private fun createByteRGBBufferedImage(
+        width: Int,
+        height: Int,
+        hasAlpha: Boolean = false
+    ): BufferedImage {
         val cs = ColorSpace.getInstance(ColorSpace.CS_sRGB)
         val cm: ColorModel
         val raster: WritableRaster

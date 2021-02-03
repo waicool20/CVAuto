@@ -34,6 +34,8 @@ abstract class Region<T : IDevice>(
     val device: T,
     val screen: Int
 ) : Rectangle(x, y, width, height) {
+    class CaptureTimeoutException: Exception("Timed out waiting for capture")
+
     /**
      * Represents the results of a find operation run on the device
      *
@@ -47,6 +49,7 @@ abstract class Region<T : IDevice>(
     companion object {
         val DEFAULT_MATCHER = DefaultTemplateMatcher()
         var FIND_REFRESH: Millis = 32
+        var CAPTURE_TIMEOUT: Millis = 5000
     }
 
     /**
@@ -333,6 +336,7 @@ abstract class Region<T : IDevice>(
      * @param period Delay between each check/click
      * @param timeout When timeout is reached this function will stop clicking, use -1 to disable timeout
      * @param condition Boolean condition function
+     * @throws TimeoutCancellationException If timeout is enabled and function times out
      */
     suspend fun clickTemplateWhile(
         template: ITemplate,
