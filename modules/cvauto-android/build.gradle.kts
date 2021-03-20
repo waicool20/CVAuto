@@ -13,6 +13,7 @@ dependencies {
         val KotlinCoroutines = "1.4.2"
     }
 
+    implementation(kotlin("stdlib-jdk8"))
     implementation("org.jetbrains.kotlin", "kotlin-reflect", versions.Kotlin)
     implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", versions.KotlinCoroutines)
     implementation("org.lz4:lz4-pure-java:1.7.0")
