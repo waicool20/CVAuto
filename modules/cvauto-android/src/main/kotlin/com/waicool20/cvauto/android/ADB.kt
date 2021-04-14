@@ -16,7 +16,7 @@ import java.util.zip.ZipInputStream
 object ADB {
     private val dataDir = Paths.get(System.getProperty("user.home")).resolve(".cvauto/android")
     private val platformToolsDir = dataDir.resolve("platform-tools")
-    private val adbBinaryPath = run {
+    val binPath = run {
         val os = System.getProperty("os.name").toLowerCase()
         val adbName = when {
             os.contains("win") -> "adb.exe"
@@ -28,7 +28,7 @@ object ADB {
     }
 
     init {
-        if (Files.notExists(adbBinaryPath)) downloadPlatformTools()
+        if (Files.notExists(binPath)) downloadPlatformTools()
         if (!adbBinaryOk()) error("Problem initializing adb")
     }
 
@@ -68,12 +68,12 @@ object ADB {
      */
     fun execute(vararg args: String): Process {
         return try {
-            ProcessBuilder("$adbBinaryPath", *args).start()
+            ProcessBuilder("$binPath", *args).start()
         } catch (e: IOException) {
             if (e.message?.contains("Permission denied") == true
                 && !System.getProperty("os.name").toLowerCase().contains("win")
             ) {
-                ProcessBuilder("chmod", "+x", "$adbBinaryPath").start()
+                ProcessBuilder("chmod", "+x", "$binPath").start()
                 execute(*args)
             } else {
                 throw e

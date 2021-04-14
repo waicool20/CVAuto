@@ -2,7 +2,6 @@ package com.waicool20.cvauto.android.input
 
 import com.waicool20.cvauto.android.ADB
 import com.waicool20.cvauto.android.AndroidDevice
-import com.waicool20.cvauto.android.lineSequence
 import com.waicool20.cvauto.core.input.IInput
 import java.io.OutputStream
 import java.lang.Integer.max
@@ -51,7 +50,8 @@ class AndroidInput internal constructor(private val device: AndroidDevice) : IIn
         val port = getNextAvailablePort()
         ADB.execute("-s", device.serial, "forward", "tcp:$port", "localabstract:scrcpy")
 
-        val process = device.executeShell(
+        val process = ProcessBuilder(
+            "${ADB.binPath}", "-s", device.serial, "shell",
             "CLASSPATH=/data/local/tmp/scrcpy-server.jar app_process / com.genymobile.scrcpy.Server",
             scrcpyVersion,
             /* Log Level ( INFO, DEBUG, WARN, ERROR ) */
@@ -59,9 +59,9 @@ class AndroidInput internal constructor(private val device: AndroidDevice) : IIn
             /* Max Size */
             "${max(device.properties.displayHeight, device.properties.displayWidth)}",
             /* Bitrate ( kbps ) */
-            "5000",
+            "1",
             /* FPS */
-            "60",
+            "1",
             /* Video Orientation ( 0 for normal orientation, inc 1 for every 90 deg ) */
             "0",
             /* Tunnel Forward ( true if using adb forward ) */
@@ -82,13 +82,11 @@ class AndroidInput internal constructor(private val device: AndroidDevice) : IIn
             "-",
             /* Encoder ( - for default ) */
             "-",
-        )
+        ).inheritIO().also {
+            it.environment()["ADB"] = "${ADB.binPath}"
+        }.start()
 
         Runtime.getRuntime().addShutdownHook(Thread { process.destroy() })
-
-        thread(isDaemon = true, name = "Scrcpy Logging") {
-            process.lineSequence().forEach(::println)
-        }
 
         Thread.sleep(1000) // Needed otherwise socket sometimes doesnt connect properly
 

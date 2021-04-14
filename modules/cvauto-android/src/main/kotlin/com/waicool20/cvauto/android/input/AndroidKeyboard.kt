@@ -34,14 +34,14 @@ class AndroidKeyboard private constructor(
     override fun keyUp(keyName: String): Unit = synchronized(this) {
         if (!heldKeys.contains(keyName)) return@synchronized
         val key = getKey(keyName)
-        sendKeyEvent(key, InputEvent.ACTION_UP)
+        sendKeyEvent(key, InputEvent.KEY_ACTION_UP)
         _heldKeys.remove(keyName)
     }
 
     override fun keyDown(keyName: String): Unit = synchronized(this) {
         if (heldKeys.contains(keyName)) return@synchronized
         val key = getKey(keyName)
-        sendKeyEvent(key, InputEvent.ACTION_DOWN)
+        sendKeyEvent(key, InputEvent.KEY_ACTION_DOWN)
         _heldKeys.add(keyName)
     }
 
