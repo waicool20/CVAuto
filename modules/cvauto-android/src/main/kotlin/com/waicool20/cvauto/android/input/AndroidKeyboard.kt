@@ -1,7 +1,6 @@
 package com.waicool20.cvauto.android.input
 
 import com.waicool20.cvauto.android.AndroidDevice
-import com.waicool20.cvauto.android.readText
 import com.waicool20.cvauto.core.input.CharactersPerSecond
 import com.waicool20.cvauto.core.input.IKeyboard
 import java.nio.ByteBuffer
@@ -12,8 +11,7 @@ import kotlin.math.roundToLong
 import kotlin.random.Random
 
 class AndroidKeyboard private constructor(
-    private val device: AndroidDevice,
-    private val keyDevFileMap: Map<Key, DeviceFile>
+    private val device: AndroidDevice
 ) : IKeyboard {
     data class AndroidKeyboardSettings(
         override var defaultTypingSpeed: CharactersPerSecond = 7,
@@ -21,33 +19,13 @@ class AndroidKeyboard private constructor(
     ) : IKeyboard.Settings
 
     companion object {
-        private val KEY_CODE_REGEX = Regex("[\\w\\d]{4}\\*?")
         internal fun getForDevice(device: AndroidDevice): AndroidKeyboard {
-            val inputInfo = device.execute("getevent -p")
-                .readText()
-                .split("add device")
-                .filter { it.contains("KEY") }
-                .takeIf { it.isNotEmpty() }
-            if (inputInfo == null) {
-                println("No keyboard found for device ${device.serial}")
-                return AndroidKeyboard(device, emptyMap())
-            }
-
-            val keyDevFileMap = mutableMapOf<Key, DeviceFile>()
-            inputInfo.map { it.split(Regex("\\s+")) }.forEach { devEntryTokens ->
-                val devFile = DeviceFile(devEntryTokens[2])
-                devEntryTokens
-                    .dropWhile { it != "KEY" }.drop(2)
-                    .takeWhile { it.matches(KEY_CODE_REGEX) }
-                    .mapNotNull { Key.findByCode(it.take(4).toLong(16)) }
-                    .forEach { keyDevFileMap[it] = devFile }
-            }
-            return AndroidKeyboard(device, keyDevFileMap)
+            return AndroidKeyboard(device)
         }
     }
 
     private val _heldKeys = mutableListOf<String>()
-    private val writeBuffer = ByteArray(16)
+    private val writeBuffer = ByteArray(14)
 
     override val settings: AndroidKeyboardSettings = AndroidKeyboardSettings()
 
@@ -56,18 +34,14 @@ class AndroidKeyboard private constructor(
     override fun keyUp(keyName: String): Unit = synchronized(this) {
         if (!heldKeys.contains(keyName)) return@synchronized
         val key = getKey(keyName)
-        val devFile = keyDevFileMap[key]?.path ?: return
-        sendKeyEvent(key, devFile, InputEvent.KEY_UP)
-        sendEvent(devFile, EventType.EV_SYN, InputEvent.SYN_REPORT, 0)
+        sendKeyEvent(key, InputEvent.ACTION_UP)
         _heldKeys.remove(keyName)
     }
 
     override fun keyDown(keyName: String): Unit = synchronized(this) {
         if (heldKeys.contains(keyName)) return@synchronized
         val key = getKey(keyName)
-        val devFile = keyDevFileMap[key]?.path ?: return
-        sendKeyEvent(key, devFile, InputEvent.KEY_DOWN)
-        sendEvent(devFile, EventType.EV_SYN, InputEvent.SYN_REPORT, 0)
+        sendKeyEvent(key, InputEvent.ACTION_DOWN)
         _heldKeys.add(keyName)
     }
 
@@ -92,42 +66,36 @@ class AndroidKeyboard private constructor(
 
     private fun getKey(keyName: String): Key {
         return when (keyName) {
-            "CTRL" -> Key.KEY_LEFTCTRL
-            "ALT" -> Key.KEY_LEFTALT
-            "SHIFT" -> Key.KEY_LEFTSHIFT
-            "WIN", "META" -> Key.KEY_LEFTMETA
+            "CTRL" -> Key.KEY_CTRL_LEFT
+            "ALT" -> Key.KEY_ALT_LEFT
+            "SHIFT" -> Key.KEY_SHIFT_LEFT
+            "WIN", "META" -> Key.KEY_META_LEFT
             else -> Key.findByName(keyName)
         }
     }
 
-    private fun sendEvent(devFile: String, type: EventType, code: InputEvent, value: Long) {
-        ByteBuffer.wrap(writeBuffer)
-                .order(ByteOrder.LITTLE_ENDIAN)
-                .putInt(0).putInt(0) // Event time can be left as 0
-                .putShort(type.code.toShort())
-                .putShort(code.code.toShort())
-                .putInt(value.toInt())
-        try {
-            device.input.getDeviceFileOutputStream(DeviceFile(devFile)).apply {
-                write(writeBuffer)
-                write("".toByteArray())
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
+    private fun sendKeyEvent(key: Key, event: InputEvent) {
 
-    private fun sendKeyEvent(key: Key, devFile: String, event: InputEvent) {
+        var meta = 0
+        if (_heldKeys.contains("CTRL")) meta = meta or Key.MASK_META_CTRL_ON.code.toInt()
+        if (_heldKeys.contains("ALT")) meta = meta or Key.MASK_META_ALT_ON.code.toInt()
+        if (_heldKeys.contains("SHIFT")) meta = meta or Key.MASK_META_SHIFT_ON.code.toInt()
+        if (_heldKeys.contains("WIN") || _heldKeys.contains("META")) {
+            meta = meta or Key.MASK_META_META_ON.code.toInt()
+        }
+
         ByteBuffer.wrap(writeBuffer)
-                .order(ByteOrder.LITTLE_ENDIAN)
-                .putInt(0).putInt(0) // Event time can be left as 0
-                .putShort(EventType.EV_KEY.code.toShort())
-                .putShort(key.code.toShort())
-                .putInt(event.code.toInt())
+            .order(ByteOrder.BIG_ENDIAN)
+            .put(ControlMessage.TYPE_INJECT_KEYCODE.toByte())
+            .put(event.code.toByte())
+            .putInt(key.code.toInt())
+            .putInt(0) // Repeat
+            .putInt(meta) // Meta flags
+
         try {
-            device.input.getDeviceFileOutputStream(DeviceFile(devFile)).apply {
+            device.input.getScrcpySockets().control.getOutputStream().apply {
                 write(writeBuffer)
-                write("".toByteArray())
+                flush()
             }
         } catch (e: Exception) {
             e.printStackTrace()

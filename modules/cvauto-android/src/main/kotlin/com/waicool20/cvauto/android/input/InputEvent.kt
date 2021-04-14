@@ -39,7 +39,9 @@ enum class InputEvent(val code: Long) {
 
     /* Key Events */
     KEY_UP(0),
-    KEY_DOWN(1);
+    KEY_DOWN(1),
+    ACTION_DOWN(0),
+    ACTION_UP(1);
 
     companion object {
         /**
