@@ -36,24 +36,14 @@ class AndroidTouchInterface private constructor(
 
     override fun touchUp(slot: Int) = synchronized(this) {
         if (_touches[slot].isTouching) {
-            sendEvent(
-                InputEvent.MOTION_ACTION_UP,
-                transformTouch(_touches[slot]),
-                0,
-                InputEvent.MOTION_BUTTON_PRIMARY
-            )
+            sendEvent(InputEvent.MOTION_ACTION_UP, transformTouch(_touches[slot]), 0)
             _touches[slot].isTouching = false
         }
     }
 
     override fun touchDown(slot: Int) = synchronized(this) {
         if (!_touches[slot].isTouching) {
-            sendEvent(
-                InputEvent.MOTION_ACTION_DOWN,
-                transformTouch(_touches[slot]),
-                50 + Random.nextInt(-25, 25),
-                InputEvent.MOTION_BUTTON_PRIMARY
-            )
+            sendEvent(InputEvent.MOTION_ACTION_DOWN, transformTouch(_touches[slot]))
             _touches[slot].isTouching = true
         }
     }
@@ -65,12 +55,7 @@ class AndroidTouchInterface private constructor(
         if (yChanged) _touches[slot].cursorY = y
         if (_touches[slot].isTouching) {
             if (xChanged || yChanged) {
-                sendEvent(
-                    InputEvent.MOTION_ACTION_MOVE,
-                    transformTouch(_touches[slot]),
-                    50 + Random.nextInt(-25, 25),
-                    InputEvent.MOTION_BUTTON_PRIMARY
-                )
+                sendEvent(InputEvent.MOTION_ACTION_MOVE, transformTouch(_touches[slot]))
             }
         }
     }
@@ -79,17 +64,15 @@ class AndroidTouchInterface private constructor(
 
     override fun tap(slot: Int, x: Int, y: Int) = synchronized(this) {
         touchMove(slot, x, y)
-        touchDown(slot); eventSync()
+        touchDown(slot)
         TimeUnit.MILLISECONDS.sleep(settings.midTapDelay)
-        touchUp(slot); eventSync()
+        touchUp(slot)
         TimeUnit.MILLISECONDS.sleep(settings.postTapDelay)
     }
 
     override fun gesture(swipes: List<ITouchInterface.Swipe>, duration: Millis) =
         synchronized(this) {
-            swipes.forEach { touchMove(it.slot, it.x1, it.y1) }
             swipes.forEach { touchDown(it.slot) }
-            eventSync()
 
             val dist = swipes.maxOf {
                 (it.x2 - it.x1) * (it.x2 - it.x1) + (it.y2 - it.y1) * (it.y2 - it.y1)
@@ -102,10 +85,8 @@ class AndroidTouchInterface private constructor(
                     val stepY = (dy * p + swipe.y1).roundToInt()
                     touchMove(swipe.slot, stepX, stepY)
                 }
-                eventSync()
             }
             swipes.forEach { touchUp(it.slot) }
-            eventSync()
             TimeUnit.MILLISECONDS.sleep(settings.postTapDelay)
         }
 
@@ -158,8 +139,8 @@ class AndroidTouchInterface private constructor(
     private fun sendEvent(
         event: InputEvent,
         touch: ITouchInterface.Touch,
-        pressure: Int,
-        button: InputEvent
+        pressure: Int = 50 + Random.nextInt(-25, 25),
+        button: InputEvent = InputEvent.MOTION_BUTTON_PRIMARY
     ) {
         if (LOG_INPUT_EVENTS) println("$event $touch $pressure $button")
         ByteBuffer.wrap(writeBuffer)
@@ -180,6 +161,8 @@ class AndroidTouchInterface private constructor(
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            device.input.reset()
+            sendEvent(event, touch, pressure, button)
         }
     }
 }

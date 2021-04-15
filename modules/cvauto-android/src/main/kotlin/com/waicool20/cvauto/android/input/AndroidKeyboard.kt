@@ -75,7 +75,6 @@ class AndroidKeyboard private constructor(
     }
 
     private fun sendKeyEvent(key: Key, event: InputEvent) {
-
         var meta = 0
         if (_heldKeys.contains("CTRL")) meta = meta or Key.MASK_META_CTRL_ON.code.toInt()
         if (_heldKeys.contains("ALT")) meta = meta or Key.MASK_META_ALT_ON.code.toInt()
@@ -99,6 +98,8 @@ class AndroidKeyboard private constructor(
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            device.input.reset()
+            sendKeyEvent(key, event)
         }
     }
 }

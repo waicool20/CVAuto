@@ -152,7 +152,7 @@ class AndroidRegion(
      * @param duration Duration of the pinch
      */
     fun pinch(r1: Int, r2: Int, angle: kotlin.Double, duration: Millis = 1000) {
-        device.input.touchInterface?.pinch(
+        device.input.touchInterface.pinch(
             centerX.roundToInt(), centerY.roundToInt(),
             r1, r2, angle, duration
         )

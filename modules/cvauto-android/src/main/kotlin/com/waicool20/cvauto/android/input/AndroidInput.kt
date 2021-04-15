@@ -3,20 +3,15 @@ package com.waicool20.cvauto.android.input
 import com.waicool20.cvauto.android.ADB
 import com.waicool20.cvauto.android.AndroidDevice
 import com.waicool20.cvauto.core.input.IInput
-import java.io.OutputStream
 import java.lang.Integer.max
 import java.net.ServerSocket
 import java.net.Socket
 import java.nio.file.Files
 import java.nio.file.Paths
-import kotlin.concurrent.thread
-
-inline class DeviceFile(val path: String)
 
 class AndroidInput internal constructor(private val device: AndroidDevice) : IInput {
     class ScrcpySockets(val process: Process, val video: Socket, val control: Socket)
 
-    private val devmap = mutableMapOf<DeviceFile, Socket>()
     private val scrcpyVersion = "1.17"
     private val dataDir = Paths.get(System.getProperty("user.home")).resolve(".cvauto/android")
     private val scrcpyServerPath = dataDir.resolve("scrcpy-server")
@@ -24,7 +19,6 @@ class AndroidInput internal constructor(private val device: AndroidDevice) : IIn
     private var scrcpySockets: ScrcpySockets? = null
 
     init {
-        device.executeShell("killall", "toybox")
         ADB.execute("forward", "--remove-all")
     }
 
@@ -110,21 +104,9 @@ class AndroidInput internal constructor(private val device: AndroidDevice) : IIn
         return sockets
     }
 
-    fun getDeviceFileOutputStream(deviceFile: DeviceFile): OutputStream {
-        val socket = devmap[deviceFile]
-        if (socket != null && !socket.isClosed) {
-            return socket.getOutputStream()
-        }
-        val port = getNextAvailablePort()
-        val process = device.executeShell("sh", "-c", "'toybox nc -l -p $port >${deviceFile.path}'")
-        Runtime.getRuntime().addShutdownHook(Thread { process.destroy() })
-
-        ADB.execute("-s", device.serial, "forward", "tcp:$port", "tcp:$port")
-
-        Thread.sleep(1000) // Needed otherwise socket sometimes doesnt connect to netcat properly
-        val newSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
-        devmap[deviceFile] = newSocket
-        return newSocket.getOutputStream()
+    fun reset() {
+        scrcpySockets?.process?.destroy()
+        scrcpySockets = null
     }
 
     private fun extractScrcpyServer() {
