@@ -12,7 +12,9 @@ import java.awt.color.ColorSpace
 import java.awt.image.*
 import java.io.DataInputStream
 import java.io.EOFException
-import java.util.concurrent.*
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPInputStream
 import kotlin.concurrent.thread
@@ -109,9 +111,9 @@ class AndroidRegion(
     override fun click(random: Boolean) {
         if (random) {
             val r = randomPoint()
-            device.input.touchInterface?.tap(0, r.x, r.y)
+            device.input.touchInterface.tap(0, r.x, r.y)
         } else {
-            device.input.touchInterface?.tap(0, centerX.roundToInt(), centerY.roundToInt())
+            device.input.touchInterface.tap(0, centerX.roundToInt(), centerY.roundToInt())
         }
     }
 
@@ -140,7 +142,7 @@ class AndroidRegion(
                 other.centerX.roundToInt(), other.centerY.roundToInt()
             )
         }
-        device.input.touchInterface?.swipe(swipe, duration)
+        device.input.touchInterface.swipe(swipe, duration)
     }
 
     /**
@@ -196,7 +198,11 @@ class AndroidRegion(
                 if (width < 0 || height < 0) continue
                 if (device.screens[screen].width != width) device.screens[screen].width = width
                 if (device.screens[screen].height != height) device.screens[screen].height = height
-                inputStream.skip(8)
+                if (device.properties.androidVersion.split(".")[0].toInt() >= 8) {
+                    // Apparently adb screencap in android versions below 8 doesn't have magic bytes,
+                    // might be something specific to AVD though
+                    inputStream.skip(8)
+                }
                 val img = createByteRGBBufferedImage(width, height, true)
                 inputStream.readFully((img.raster.dataBuffer as DataBufferByte).data)
                 normalCapturing.set(false)
