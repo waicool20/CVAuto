@@ -92,13 +92,13 @@ class AndroidKeyboard private constructor(
             .putInt(meta) // Meta flags
 
         try {
-            device.input.getScrcpySockets().control.getOutputStream().apply {
+            device.scrcpy.control.getOutputStream().apply {
                 write(writeBuffer)
                 flush()
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            device.input.reset()
+            device.resetScrcpy()
             sendKeyEvent(key, event)
         }
     }

@@ -5,7 +5,6 @@ import java.net.URL
 import java.nio.channels.Channels
 import java.nio.channels.FileChannel
 import java.nio.file.Files
-import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.zip.ZipInputStream
 
@@ -14,8 +13,7 @@ import java.util.zip.ZipInputStream
  * if it doesn't exist
  */
 object ADB {
-    private val dataDir = Paths.get(System.getProperty("user.home")).resolve(".cvauto/android")
-    private val platformToolsDir = dataDir.resolve("platform-tools")
+    private val platformToolsDir = CVAutoAndroid.HOME_DIR.resolve("platform-tools")
     val binPath = run {
         val os = System.getProperty("os.name").toLowerCase()
         val adbName = when {
@@ -41,23 +39,23 @@ object ADB {
      */
     fun getDevices(): List<AndroidDevice> {
         return execute("devices")
-                .readLines()
-                .drop(1)
-                .filter { it.isNotBlank() }
-                .map { it.takeWhile { !it.isWhitespace() } }
-                .mapNotNull { serial ->
-                    if (deviceCache.containsKey(serial)) {
-                        deviceCache[serial]
-                    } else {
-                        try {
-                            AndroidDevice(serial).also { deviceCache[serial] = it }
-                        } catch (e: Exception) {
-                            println("Could not initialize device: $serial, skipping")
-                            e.printStackTrace()
-                            null
-                        }
+            .readLines()
+            .drop(1)
+            .filter { it.isNotBlank() }
+            .map { it.takeWhile { !it.isWhitespace() } }
+            .mapNotNull { serial ->
+                if (deviceCache.containsKey(serial)) {
+                    deviceCache[serial]
+                } else {
+                    try {
+                        AndroidDevice(serial).also { deviceCache[serial] = it }
+                    } catch (e: Exception) {
+                        println("Could not initialize device: $serial, skipping")
+                        e.printStackTrace()
+                        null
                     }
                 }
+            }
     }
 
     /**
@@ -93,8 +91,9 @@ object ADB {
             os.contains("linux") -> "linux"
             else -> error("Unsupported OS: $os")
         }
-        val platformToolsUrl = URL("https://dl.google.com/android/repository/platform-tools-latest-$os.zip")
-        val outputFile = dataDir.resolve("platform-tools.zip")
+        val platformToolsUrl =
+            URL("https://dl.google.com/android/repository/platform-tools-latest-$os.zip")
+        val outputFile = CVAutoAndroid.HOME_DIR.resolve("platform-tools.zip")
         Files.createDirectories(outputFile.parent)
         val readChannel = Channels.newChannel(platformToolsUrl.openStream())
 
@@ -109,7 +108,7 @@ object ADB {
             generateSequence { zis.nextEntry }
                 .filterNot { it.isDirectory }
                 .forEach { ze ->
-                    val path = dataDir.resolve(ze.name)
+                    val path = CVAutoAndroid.HOME_DIR.resolve(ze.name)
                     Files.createDirectories(path.parent)
                     Files.newOutputStream(path).use { os ->
                         generateSequence { zis.read(buffer) }.takeWhile { it > 0 }.forEach {

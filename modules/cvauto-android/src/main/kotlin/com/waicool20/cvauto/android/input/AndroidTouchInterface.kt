@@ -160,13 +160,13 @@ class AndroidTouchInterface private constructor(
             .putShort(pressure.toShort())
             .putInt(button.code.toInt())
         try {
-            device.input.getScrcpySockets().control.getOutputStream().apply {
+            device.scrcpy.control.getOutputStream().apply {
                 write(writeBuffer)
                 flush()
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            device.input.reset()
+            device.resetScrcpy()
             sendEvent(event, touch, pressure, button)
         }
     }

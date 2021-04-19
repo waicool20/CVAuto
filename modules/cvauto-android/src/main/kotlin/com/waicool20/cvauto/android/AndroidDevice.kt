@@ -32,11 +32,12 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
      * Orientation of the device
      */
     val orientation: Int
-        get() = execute("dumpsys input | grep SurfaceOrientation").readText().takeLast(1).toIntOrNull() ?: 0
+        get() = execute("dumpsys input | grep SurfaceOrientation").readText().takeLast(1)
+            .toIntOrNull() ?: 0
 
     init {
-        val props = execute("getprop").readLines().mapNotNull {
-            Regex("\\[(.*?)]: \\[(.*?)]").matchEntire(it)?.groupValues?.let { it[1] to it[2] }
+        val props = execute("getprop").readLines().mapNotNull { str ->
+            Regex("\\[(.*?)]: \\[(.*?)]").matchEntire(str)?.groupValues?.let { it[1] to it[2] }
         }.toMap()
         val (width, height) = Regex("Physical size: (\\d+?)x(\\d+?)")
             .matchEntire(execute("wm size").readText().trim())?.destructured
@@ -53,6 +54,12 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
         )
     }
 
+    /**
+     * Reference to [Scrcpy] object tied to this device, providing services such as video and input
+     */
+    var scrcpy = Scrcpy.getForDevice(this)
+        private set
+
     override val input = AndroidInput(this)
     override val screens: List<AndroidRegion> =
         listOf(AndroidRegion(0, 0, properties.displayWidth, properties.displayHeight, this, 0))
@@ -61,11 +68,12 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
         // Push lz4 binary
         val arch = execute("uname -m").readText().trim()
         try {
-            val inStream = AndroidDevice::class.java.getResourceAsStream("/com/waicool20/cvauto/android/libs/$arch/lz4")
+            val inStream = AndroidDevice::class.java
+                .getResourceAsStream("/com/waicool20/cvauto/android/libs/$arch/lz4")
             val tmp = Files.createTempDirectory("").resolve("lz4")
             val outStream = Files.newOutputStream(tmp)
-            inStream.copyTo(outStream)
-            inStream.close()
+            inStream?.copyTo(outStream)
+            inStream?.close()
             outStream.close()
             push(tmp, "/data/local/tmp")
             executeShell("chmod +x /data/local/tmp/lz4")
@@ -163,6 +171,13 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
         }
     }
 
+    /**
+     * This will close the current scrcpy process tied to this device and start a new instance
+     */
+    fun resetScrcpy() {
+        scrcpy.close()
+        scrcpy = Scrcpy.getForDevice(this)
+    }
 
     override fun toString(): String {
         return "AndroidDevice(serial = $serial)"
