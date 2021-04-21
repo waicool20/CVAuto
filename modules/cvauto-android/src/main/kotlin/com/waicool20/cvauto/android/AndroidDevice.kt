@@ -66,14 +66,16 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
 
     init {
         // Push lz4 binary
-        val arch = execute("uname -m").readText().trim()
+        var arch = execute("uname -m").readText().trim()
+        if (arch == "armv8l") arch = "aarch64"
         try {
             val inStream = AndroidDevice::class.java
                 .getResourceAsStream("/com/waicool20/cvauto/android/libs/$arch/lz4")
+                ?: error("$arch not supported")
             val tmp = Files.createTempDirectory("").resolve("lz4")
             val outStream = Files.newOutputStream(tmp)
-            inStream?.copyTo(outStream)
-            inStream?.close()
+            inStream.copyTo(outStream)
+            inStream.close()
             outStream.close()
             push(tmp, "/data/local/tmp")
             executeShell("chmod +x /data/local/tmp/lz4")
