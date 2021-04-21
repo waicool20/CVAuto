@@ -1,6 +1,7 @@
 package com.waicool20.cvauto.android.input
 
 import com.waicool20.cvauto.android.AndroidDevice
+import com.waicool20.cvauto.android.Scrcpy
 import com.waicool20.cvauto.core.Millis
 import com.waicool20.cvauto.core.input.ITouchInterface
 import com.waicool20.cvauto.util.Animations
@@ -147,16 +148,31 @@ class AndroidTouchInterface private constructor(
         pressure: Int = 50 + Random.nextInt(-25, 25),
         button: InputEvent = InputEvent.MOTION_BUTTON_PRIMARY
     ) {
+        var x = touch.cursorX
+        var y = touch.cursorY
+        var w = device.properties.displayWidth
+        var h = device.properties.displayHeight
+        val scaleFactor = when {
+            w >= h -> min(1.0, Scrcpy.MAX_SIZE / w.toDouble())
+            w < h -> min(1.0, Scrcpy.MAX_SIZE / h.toDouble())
+            else -> 1.0
+        }
+
+        x = (x * scaleFactor).roundToInt()
+        y = (y * scaleFactor).roundToInt()
+        w = (w * scaleFactor).roundToInt()
+        h = (h * scaleFactor).roundToInt()
+
         if (LOG_INPUT_EVENTS) println("$event $touch $pressure $button")
         ByteBuffer.wrap(writeBuffer)
             .order(ByteOrder.BIG_ENDIAN)
             .put(ControlMessage.TYPE_INJECT_TOUCH_EVENT.toByte())
             .put(event.code.toByte())
             .putLong(touch.slot.toLong())
-            .putInt(touch.cursorX)
-            .putInt(touch.cursorY)
-            .putShort(device.properties.displayWidth.toShort())
-            .putShort(device.properties.displayHeight.toShort())
+            .putInt(x)
+            .putInt(y)
+            .putShort(w.toShort())
+            .putShort(h.toShort())
             .putShort(pressure.toShort())
             .putInt(button.code.toInt())
         try {

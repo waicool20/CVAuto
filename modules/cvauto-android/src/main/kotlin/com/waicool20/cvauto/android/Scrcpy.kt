@@ -33,6 +33,7 @@ class Scrcpy private constructor(val port: Int, val process: Process, val video:
     companion object {
         val VERSION = "1.17"
         val PATH: Path = CVAutoAndroid.HOME_DIR.resolve("scrcpy-server")
+        val MAX_SIZE = 1024
 
         internal fun getForDevice(device: AndroidDevice): Scrcpy {
             if (Files.notExists(PATH)) extractServer()
@@ -50,7 +51,7 @@ class Scrcpy private constructor(val port: Int, val process: Process, val video:
                 /* Log Level ( INFO, DEBUG, WARN, ERROR ) */
                 "DEBUG",
                 /* Max Size */
-                "${Integer.max(device.properties.displayHeight, device.properties.displayWidth)}",
+                "$MAX_SIZE",
                 /* Bitrate ( kbps ) */
                 "1",
                 /* FPS */
