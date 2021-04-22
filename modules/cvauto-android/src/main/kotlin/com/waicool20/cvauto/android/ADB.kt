@@ -7,6 +7,7 @@ import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 import java.util.zip.ZipInputStream
+import kotlin.concurrent.thread
 
 /**
  * Wrapper for android adb tool, accessing this object downloads android platform tools to %home%/cvauto/android
@@ -76,6 +77,19 @@ object ADB {
             } else {
                 throw e
             }
+        }
+    }
+
+    /**
+     * Connects to a remote device using given address
+     *
+     * @param onConnected Callback to when connection attempt is finished which takes
+     * the [AndroidDevice], this may be null if connection failed
+     */
+    fun connect(address: String, onConnected: (AndroidDevice?) -> Unit = {}) {
+        thread(name = "ADB Device Connect") {
+            execute("connect", address).waitFor()
+            onConnected(getDevices().find { it.serial == address })
         }
     }
 
