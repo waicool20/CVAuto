@@ -199,9 +199,12 @@ class AndroidRegion(
                 if (device.screens[screen].width != width) device.screens[screen].width = width
                 if (device.screens[screen].height != height) device.screens[screen].height = height
                 if (device.properties.androidVersion.split(".")[0].toInt() >= 8) {
-                    // Apparently adb screencap in android versions below 8 doesn't have magic bytes,
-                    // might be something specific to AVD though
+                    // ADB screencap on android versions 8 and above have 8 extra bytes instead of 4
+                    // https://android.googlesource.com/platform/frameworks/base/+/refs/heads/pie-release/cmds/screencap/screencap.cpp#247
                     inputStream.skip(8)
+                } else {
+                    // https://android.googlesource.com/platform/frameworks/base/+/refs/heads/nougat-release/cmds/screencap/screencap.cpp#191
+                    inputStream.skip(4)
                 }
                 val img = createByteRGBBufferedImage(width, height, true)
                 inputStream.readFully((img.raster.dataBuffer as DataBufferByte).data)
