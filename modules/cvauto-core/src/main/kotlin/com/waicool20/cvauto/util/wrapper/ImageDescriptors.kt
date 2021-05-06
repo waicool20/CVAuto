@@ -8,4 +8,7 @@ import org.ddogleg.struct.FastQueue
 /**
  * Wrapper class for the result of [describeImage]
  */
-data class ImageDescriptors(val points: List<Point2D_F64>, val descriptorList: FastQueue<BrightFeature>)
+data class ImageDescriptors(
+    val points: List<Point2D_F64>,
+    val descriptorList: FastQueue<BrightFeature>
+)

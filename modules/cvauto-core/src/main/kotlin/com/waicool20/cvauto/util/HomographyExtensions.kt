@@ -1,4 +1,5 @@
 @file:Suppress("NOTHING_TO_INLINE")
+
 package com.waicool20.cvauto.util
 
 import georegression.struct.homography.Homography2D_F64
@@ -15,7 +16,8 @@ import java.awt.Rectangle
  *
  * @return Transformed point
  */
-inline fun Homography2D_F64.transformPoint(x: Int, y: Int) = transformPoint(x.toDouble(), y.toDouble())
+inline fun Homography2D_F64.transformPoint(x: Int, y: Int) =
+    transformPoint(x.toDouble(), y.toDouble())
 
 /**
  * Transform the given point based on this homography matrix
@@ -38,7 +40,8 @@ fun Homography2D_F64.transformPoint(x: Double, y: Double): Point2D_I32 {
  *
  * @return Transformed rectangle
  */
-inline fun Homography2D_F64.transformRect(rect: Rectangle) = transformRect(rect.x, rect.y, rect.width, rect.height)
+inline fun Homography2D_F64.transformRect(rect: Rectangle) =
+    transformRect(rect.x, rect.y, rect.width, rect.height)
 
 /**
  * Transform the given rectangle based on this homography matrix

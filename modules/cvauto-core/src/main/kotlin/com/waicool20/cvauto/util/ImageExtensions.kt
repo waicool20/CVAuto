@@ -38,7 +38,8 @@ fun BufferedImage.asGrayF32(): GrayF32 = ConvertBufferedImage.convertFrom(this, 
  *
  * @return New [BufferedImage] with equivalent image representation
  */
-fun Planar<GrayF32>.asBufferedImage(): BufferedImage = ConvertBufferedImage.convertTo_F32(this, null, true)
+fun Planar<GrayF32>.asBufferedImage(): BufferedImage =
+    ConvertBufferedImage.convertTo_F32(this, null, true)
 
 /**
  * Convenience extension to convert from [BufferedImage] to [Planar]
@@ -113,7 +114,11 @@ fun Planar<GrayF32>.asRgb(): Planar<GrayF32> {
  * @param satRange Range of accepted saturation values (0 - 100)
  * @param satRange Range of accepted lightness values (0 - 255)
  */
-fun Planar<GrayF32>.hsvFilter(hueRange: IntRange? = null, satRange: IntRange? = null, valRange: IntRange? = null) {
+fun Planar<GrayF32>.hsvFilter(
+    hueRange: IntRange? = null,
+    satRange: IntRange? = null,
+    valRange: IntRange? = null
+) {
     hsvFilter(
         hueRange?.toDoubleRange(),
         satRange?.toDoubleRange(),

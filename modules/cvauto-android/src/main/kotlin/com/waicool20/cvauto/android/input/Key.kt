@@ -1,6 +1,7 @@
 package com.waicool20.cvauto.android.input
 
 import java.awt.event.KeyEvent
+import java.util.*
 
 /**
  * Represents a key, see
@@ -503,6 +504,7 @@ enum class Key(val code: Long) {
         //</editor-fold>
 
         private val shiftChars = "~!@#$%^&*()_+{}|:\"<>?"
+
         /**
          * Checks if a given character needs shift to be pressed to be typed
          *
@@ -553,7 +555,7 @@ enum class Key(val code: Long) {
          * @return [Key]
          */
         fun findByName(name: String) = try {
-            valueOf("KEY_${name.toUpperCase()}")
+            valueOf("KEY_${name.uppercase()}")
         } catch (e: IllegalArgumentException) {
             puncMapping.getOrDefault(name[0], KEY_UNKNOWN)
         }

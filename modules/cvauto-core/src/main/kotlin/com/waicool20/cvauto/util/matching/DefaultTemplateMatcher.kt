@@ -1,7 +1,6 @@
 package com.waicool20.cvauto.util.matching
 
 import boofcv.alg.feature.detect.template.TemplateMatching
-import boofcv.struct.QueueCorner
 import boofcv.struct.image.GrayF32
 import com.waicool20.cvauto.core.template.ITemplate
 import com.waicool20.cvauto.util.*
@@ -39,8 +38,14 @@ class DefaultTemplateMatcher : ITemplateMatcher {
     override fun findBest(template: ITemplate, image: GrayF32, count: Int): List<FindResult> {
         val scaleFactor = when {
             settings.matchDimension <= 0 -> 1.0
-            image.width >= image.height -> min(1.0, settings.matchDimension / image.width.toDouble())
-            image.width < image.height -> min(1.0, settings.matchDimension / image.height.toDouble())
+            image.width >= image.height -> min(
+                1.0,
+                settings.matchDimension / image.width.toDouble()
+            )
+            image.width < image.height -> min(
+                1.0,
+                settings.matchDimension / image.height.toDouble()
+            )
             else -> 1.0
         }
         val scaledImage = image.scale(scaleFactor).blurred(settings.blurRadius)
@@ -96,7 +101,12 @@ class DefaultTemplateMatcher : ITemplateMatcher {
         return results.toList().mapNotNull {
             if (scaleFactor == 1.0 && it.score < threshold) return@mapNotNull null
             FindResult(
-                Rectangle((it.x / scaleFactor).roundToInt(), (it.y / scaleFactor).roundToInt(), width, height),
+                Rectangle(
+                    (it.x / scaleFactor).roundToInt(),
+                    (it.y / scaleFactor).roundToInt(),
+                    width,
+                    height
+                ),
                 it.score
             )
         }.sortedByDescending { it.score }

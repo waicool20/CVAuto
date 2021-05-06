@@ -20,6 +20,11 @@ object KFactoryDetectDescribe {
         configDescribe: ConfigSurfDescribe.Stability? = null,
         configOrientation: ConfigSlidingIntegral? = null
     ): DetectDescribePoint<T, BrightFeature> {
-        return FactoryDetectDescribe.surfStable<T, T>(configDetector, configDescribe, configOrientation, T::class.java)
+        return FactoryDetectDescribe.surfStable<T, T>(
+            configDetector,
+            configDescribe,
+            configOrientation,
+            T::class.java
+        )
     }
 }

@@ -21,10 +21,13 @@ object KFactoryAssociation {
      * @see [FactoryAssociation.greedy]
      */
     inline fun <reified T : TupleDesc<in T>> greedy(
-            score: ScoreAssociation<T>,
-            maxError: Double,
-            backwardsValidation: Boolean
+        score: ScoreAssociation<T>,
+        maxError: Double,
+        backwardsValidation: Boolean
     ): AssociateDescription<T> {
-        return FactoryAssociation.greedy(ConfigAssociateGreedy(backwardsValidation, maxError), score)
+        return FactoryAssociation.greedy(
+            ConfigAssociateGreedy(backwardsValidation, maxError),
+            score
+        )
     }
 }

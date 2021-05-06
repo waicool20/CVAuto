@@ -1,7 +1,6 @@
 package com.waicool20.cvauto.desktop
 
 import com.waicool20.cvauto.core.IDevice
-import com.waicool20.cvauto.core.Region
 import com.waicool20.cvauto.core.input.IInput
 import java.awt.GraphicsEnvironment
 

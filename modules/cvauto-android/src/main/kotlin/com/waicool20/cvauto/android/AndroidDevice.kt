@@ -3,8 +3,11 @@ package com.waicool20.cvauto.android
 import com.waicool20.cvauto.android.input.AndroidInput
 import com.waicool20.cvauto.core.IDevice
 import com.waicool20.cvauto.core.Pixels
-import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.createTempDirectory
+import kotlin.io.path.deleteExisting
+import kotlin.io.path.outputStream
 
 /**
  * Represents an android device
@@ -72,15 +75,15 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
             val inStream = AndroidDevice::class.java
                 .getResourceAsStream("/com/waicool20/cvauto/android/libs/$arch/lz4")
                 ?: error("$arch not supported")
-            val tmp = Files.createTempDirectory("").resolve("lz4")
-            val outStream = Files.newOutputStream(tmp)
+            val tmp = createTempDirectory().resolve("lz4")
+            val outStream = tmp.outputStream()
             inStream.copyTo(outStream)
             inStream.close()
             outStream.close()
             push(tmp, "/data/local/tmp")
             executeShell("chmod +x /data/local/tmp/lz4")
-            Files.delete(tmp)
-            Files.delete(tmp.parent)
+            tmp.deleteExisting()
+            tmp.parent.deleteExisting()
         } catch (e: Exception) {
             // Fallback to GZIP
             screens.forEach { it.compressionMode = AndroidRegion.CompressionMode.GZIP }
@@ -167,7 +170,7 @@ class AndroidDevice internal constructor(val serial: String) : IDevice {
      * @return true if pushed successfully
      */
     fun push(local: Path, remote: String): Boolean {
-        return ADB.execute("-s", serial, "push", "${local.toAbsolutePath()}", remote).run {
+        return ADB.execute("-s", serial, "push", local.absolutePathString(), remote).run {
             waitFor()
             exitValue() == 0
         }

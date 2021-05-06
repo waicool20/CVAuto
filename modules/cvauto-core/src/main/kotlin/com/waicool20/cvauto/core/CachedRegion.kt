@@ -19,13 +19,16 @@ class CachedRegion<T : IDevice> private constructor(
     region.device,
     region.screen
 ) {
-    constructor(region: Region<T>): this(region, null)
+    constructor(region: Region<T>) : this(region, null)
 
     private val cachedImage = parentCachedImage ?: region.capture()
     override fun capture(): BufferedImage = cachedImage
 
     override fun mapRectangleToRegion(rect: Rectangle) =
-        CachedRegion(region.mapRectangleToRegion(rect), cachedImage.getSubimage(rect.x, rect.y, rect.width, rect.height))
+        CachedRegion(
+            region.mapRectangleToRegion(rect),
+            cachedImage.getSubimage(rect.x, rect.y, rect.width, rect.height)
+        )
 
     override fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<T> =
         region.mapFindResultToRegion(result)
@@ -37,8 +40,15 @@ class CachedRegion<T : IDevice> private constructor(
     /**
      * Copy constructor, the new cached region will be the snapshot at the time of copy
      */
-    override fun copy(x: Pixels, y: Pixels, width: Pixels, height: Pixels, device: T, screen: Int): CachedRegion<T> {
-        return region.copy(x,y, width, height, device, screen).asCachedRegion()
+    override fun copy(
+        x: Pixels,
+        y: Pixels,
+        width: Pixels,
+        height: Pixels,
+        device: T,
+        screen: Int
+    ): CachedRegion<T> {
+        return region.copy(x, y, width, height, device, screen).asCachedRegion()
     }
 }
 

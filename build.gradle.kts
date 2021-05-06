@@ -38,7 +38,11 @@ allprojects {
 
         implementation(kotlin("stdlib-jdk8"))
         implementation(kotlin("reflect"))
-        implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", versions.KotlinCoroutines)
+        implementation(
+            "org.jetbrains.kotlinx",
+            "kotlinx-coroutines-core",
+            versions.KotlinCoroutines
+        )
 
         // Tests
         testImplementation("org.junit.jupiter:junit-jupiter-api:5.5.2")

@@ -23,20 +23,27 @@ import com.waicool20.cvauto.android.input.AndroidInput
 import java.io.Closeable
 import java.net.ServerSocket
 import java.net.Socket
-import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.notExists
+import kotlin.io.path.outputStream
 
 /**
  * Wrapper class for scrcpy process and sockets
  */
-class Scrcpy private constructor(val port: Int, val process: Process, val video: Socket, val control: Socket): Closeable {
+class Scrcpy private constructor(
+    val port: Int,
+    val process: Process,
+    val video: Socket,
+    val control: Socket
+) : Closeable {
     companion object {
         val VERSION = "1.17"
         val PATH: Path = CVAutoAndroid.HOME_DIR.resolve("scrcpy-server")
         val MAX_SIZE = 1024
 
         internal fun getForDevice(device: AndroidDevice): Scrcpy {
-            if (Files.notExists(PATH)) extractServer()
+            if (PATH.notExists()) extractServer()
 
             device.push(PATH, "/data/local/tmp/")
             device.executeShell("mv", "/data/local/tmp/scrcpy-server{,.jar}")
@@ -45,7 +52,7 @@ class Scrcpy private constructor(val port: Int, val process: Process, val video:
             ADB.execute("-s", device.serial, "forward", "tcp:$port", "localabstract:scrcpy")
 
             val process = ProcessBuilder(
-                "${ADB.binPath}", "-s", device.serial, "shell",
+                ADB.binPath.absolutePathString(), "-s", device.serial, "shell",
                 "CLASSPATH=/data/local/tmp/scrcpy-server.jar app_process / com.genymobile.scrcpy.Server",
                 VERSION,
                 /* Log Level ( INFO, DEBUG, WARN, ERROR ) */
@@ -77,7 +84,7 @@ class Scrcpy private constructor(val port: Int, val process: Process, val video:
                 /* Encoder ( - for default ) */
                 "-",
             ).inheritIO().also {
-                it.environment()["ADB"] = "${ADB.binPath}"
+                it.environment()["ADB"] = ADB.binPath.absolutePathString()
             }.start()
 
             Thread.sleep(1000) // Needed otherwise socket sometimes doesnt connect properly
@@ -90,14 +97,15 @@ class Scrcpy private constructor(val port: Int, val process: Process, val video:
             if (vsi.read() != 0) error("Could not connect to scrcpy server")
             val readBuffer = ByteArray(68)
             vsi.read(readBuffer)
-            val deviceNameIndex = readBuffer.indexOfFirst { it == 0.toByte() }.takeIf { it != -1 } ?: 64
+            val deviceNameIndex =
+                readBuffer.indexOfFirst { it == 0.toByte() }.takeIf { it != -1 } ?: 64
             val deviceName = readBuffer.sliceArray(0 until deviceNameIndex).decodeToString()
             val width = readBuffer.sliceArray(64..65).let { it[0].toInt() shl 8 or it[1].toInt() }
             val height = readBuffer.sliceArray(66..67).let { it[0].toInt() shl 8 or it[1].toInt() }
 
             println("Connected to $deviceName, width: $width, height: $height")
 
-            val scrcpy =  Scrcpy(port, process, vs, cs)
+            val scrcpy = Scrcpy(port, process, vs, cs)
             // Make sure adb stuff gets cleaned up during shutdown
             Runtime.getRuntime().addShutdownHook(Thread { scrcpy.close() })
             return scrcpy
@@ -106,7 +114,7 @@ class Scrcpy private constructor(val port: Int, val process: Process, val video:
         private fun extractServer() {
             val inStream = AndroidInput::class.java
                 .getResourceAsStream("/com/waicool20/cvauto/android/scrcpy-server-v$VERSION")!!
-            val outStream = Files.newOutputStream(PATH)
+            val outStream = PATH.outputStream()
             inStream.copyTo(outStream)
             inStream.close()
             outStream.close()

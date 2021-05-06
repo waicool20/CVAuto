@@ -7,7 +7,6 @@ import com.waicool20.cvauto.util.asGrayF32
 import com.waicool20.cvauto.util.matching.DefaultTemplateMatcher
 import com.waicool20.cvauto.util.matching.ITemplateMatcher
 import kotlinx.coroutines.*
-import kotlinx.coroutines.withTimeoutOrNull
 import java.awt.Point
 import java.awt.Rectangle
 import java.awt.image.BufferedImage
@@ -34,7 +33,7 @@ abstract class Region<T : IDevice>(
     val device: T,
     val screen: Int
 ) : Rectangle(x, y, width, height) {
-    class CaptureTimeoutException: Exception("Timed out waiting for capture")
+    class CaptureTimeoutException : Exception("Timed out waiting for capture")
 
     /**
      * Represents the results of a find operation run on the device
@@ -141,7 +140,12 @@ abstract class Region<T : IDevice>(
      * @return New [Region] representing this sub region
      * @throws IllegalArgumentException if new sub region is not contained in the current region
      */
-    inline fun <reified R : Region<T>> subRegionAs(x: Pixels, y: Pixels, width: Pixels, height: Pixels): R {
+    inline fun <reified R : Region<T>> subRegionAs(
+        x: Pixels,
+        y: Pixels,
+        width: Pixels,
+        height: Pixels
+    ): R {
         return subRegion(x, y, width, height) as R
     }
 

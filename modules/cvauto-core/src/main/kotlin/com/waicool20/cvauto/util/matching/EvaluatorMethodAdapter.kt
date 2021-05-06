@@ -6,7 +6,7 @@ import boofcv.struct.image.GrayF32
 /**
  * Base class for evaluator methods used by cvauto
  */
-abstract class EvaluatorMethodAdapter: TemplateIntensityImage.EvaluatorMethod<GrayF32> {
+abstract class EvaluatorMethodAdapter : TemplateIntensityImage.EvaluatorMethod<GrayF32> {
     companion object {
         /*
         Reflection needed since these fields are package protected in the library,

@@ -4,10 +4,13 @@ import java.io.IOException
 import java.net.URL
 import java.nio.channels.Channels
 import java.nio.channels.FileChannel
-import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 import java.util.zip.ZipInputStream
 import kotlin.concurrent.thread
+import kotlin.io.path.createDirectories
+import kotlin.io.path.inputStream
+import kotlin.io.path.notExists
+import kotlin.io.path.outputStream
 
 /**
  * Wrapper for android adb tool, accessing this object downloads android platform tools to %home%/cvauto/android
@@ -16,7 +19,7 @@ import kotlin.concurrent.thread
 object ADB {
     private val platformToolsDir = CVAutoAndroid.HOME_DIR.resolve("platform-tools")
     val binPath = run {
-        val os = System.getProperty("os.name").toLowerCase()
+        val os = System.getProperty("os.name").lowercase()
         val adbName = when {
             os.contains("win") -> "adb.exe"
             os.contains("mac") -> "adb"
@@ -27,7 +30,7 @@ object ADB {
     }
 
     init {
-        if (Files.notExists(binPath)) downloadPlatformTools()
+        if (binPath.notExists()) downloadPlatformTools()
         if (!adbBinaryOk()) error("Problem initializing adb")
     }
 
@@ -70,7 +73,7 @@ object ADB {
             ProcessBuilder("$binPath", *args).start()
         } catch (e: IOException) {
             if (e.message?.contains("Permission denied") == true
-                && !System.getProperty("os.name").toLowerCase().contains("win")
+                && !System.getProperty("os.name").lowercase().contains("win")
             ) {
                 ProcessBuilder("chmod", "+x", "$binPath").start()
                 execute(*args)
@@ -98,7 +101,7 @@ object ADB {
     }
 
     private fun downloadPlatformTools() {
-        var os = System.getProperty("os.name").toLowerCase()
+        var os = System.getProperty("os.name").lowercase()
         os = when {
             os.contains("win") -> "windows"
             os.contains("mac") -> "darwin"
@@ -108,23 +111,23 @@ object ADB {
         val platformToolsUrl =
             URL("https://dl.google.com/android/repository/platform-tools-latest-$os.zip")
         val outputFile = CVAutoAndroid.HOME_DIR.resolve("platform-tools.zip")
-        Files.createDirectories(outputFile.parent)
+        outputFile.parent.createDirectories()
         val readChannel = Channels.newChannel(platformToolsUrl.openStream())
 
-        if (Files.notExists(outputFile)) {
+        if (outputFile.notExists()) {
             FileChannel.open(outputFile, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
                 .transferFrom(readChannel, 0, Long.MAX_VALUE)
         }
 
         val buffer = ByteArray(1024)
 
-        ZipInputStream(Files.newInputStream(outputFile)).use { zis ->
+        ZipInputStream(outputFile.inputStream()).use { zis ->
             generateSequence { zis.nextEntry }
                 .filterNot { it.isDirectory }
                 .forEach { ze ->
                     val path = CVAutoAndroid.HOME_DIR.resolve(ze.name)
-                    Files.createDirectories(path.parent)
-                    Files.newOutputStream(path).use { os ->
+                    path.parent.createDirectories()
+                    path.outputStream().use { os ->
                         generateSequence { zis.read(buffer) }.takeWhile { it > 0 }.forEach {
                             os.write(buffer, 0, it)
                         }

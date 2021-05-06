@@ -8,7 +8,8 @@ import boofcv.struct.image.ImageBase
  * @see <a href="https://github.com/lessthanoptimal/BoofCV/issues/144">Github Issue</a>
  */
 @Suppress("FINITE_BOUNDS_VIOLATION_IN_JAVA")
-class DefaultTemplateIntensityImage<T: ImageBase<T>>(method: EvaluatorMethod<T>): TemplateIntensityImage_MT<T>(method) {
+class DefaultTemplateIntensityImage<T : ImageBase<T>>(method: EvaluatorMethod<T>) :
+    TemplateIntensityImage_MT<T>(method) {
     override fun process(template: T) {
         this.template = template
         mask = null

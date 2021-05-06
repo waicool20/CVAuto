@@ -24,7 +24,9 @@ class DesktopRegion(
 
     override fun capture(): BufferedImage {
         val capture = robot.createScreenCapture(this).getSubimage(x, y, width, height)
-        if (device.screens.contains(this)) _lastScreenCapture = System.currentTimeMillis() to capture
+        if (device.screens.contains(this)) {
+            _lastScreenCapture = System.currentTimeMillis() to capture
+        }
         return capture
     }
 
