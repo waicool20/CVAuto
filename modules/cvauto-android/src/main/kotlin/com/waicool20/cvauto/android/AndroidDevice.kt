@@ -12,7 +12,7 @@ import kotlin.io.path.outputStream
 /**
  * Represents an android device
  */
-class AndroidDevice internal constructor(val serial: String) : IDevice {
+class AndroidDevice internal constructor(val serial: String) : IDevice<AndroidDevice, AndroidRegion> {
     /**
      * Wrapper class containing the basic properties of an android device
      */

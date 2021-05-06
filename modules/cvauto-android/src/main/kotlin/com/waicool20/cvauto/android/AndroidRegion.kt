@@ -27,7 +27,7 @@ class AndroidRegion(
     height: Pixels,
     device: AndroidDevice,
     screen: Int
-) : Region<AndroidDevice>(x, y, width, height, device, screen) {
+) : Region<AndroidDevice, AndroidRegion>(x, y, width, height, device, screen) {
     private val executor = Executors.newCachedThreadPool()
 
     enum class CompressionMode {
@@ -98,14 +98,6 @@ class AndroidRegion(
         }
         countDownLatch.await(CAPTURE_TIMEOUT, TimeUnit.MILLISECONDS)
         return img ?: throw CaptureTimeoutException()
-    }
-
-    override fun mapRectangleToRegion(rect: Rectangle): Region<AndroidDevice> {
-        return AndroidRegion(rect.x + x, rect.y + y, rect.width, rect.height, device, screen)
-    }
-
-    override fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<AndroidDevice> {
-        return RegionFindResult(mapRectangleToRegion(result.rectangle), result.score)
     }
 
     override fun click(random: Boolean) {

@@ -7,7 +7,7 @@ import java.awt.GraphicsEnvironment
 /**
  * Singleton [Desktop] device object, represents the local desktop environment
  */
-object Desktop : IDevice {
+object Desktop : IDevice<Desktop, DesktopRegion> {
     override val input: IInput get() = TODO()
     override val screens: List<DesktopRegion>
         get() = GraphicsEnvironment.getLocalGraphicsEnvironment().run {

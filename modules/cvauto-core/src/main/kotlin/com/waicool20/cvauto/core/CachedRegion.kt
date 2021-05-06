@@ -1,7 +1,5 @@
 package com.waicool20.cvauto.core
 
-import com.waicool20.cvauto.util.matching.ITemplateMatcher
-import java.awt.Rectangle
 import java.awt.image.BufferedImage
 
 /**
@@ -9,29 +7,20 @@ import java.awt.image.BufferedImage
  * and cache it, [capture] will always return this cached image.
  * Sub-regions created from this region will also use this cached image for their operations
  */
-class CachedRegion<T : IDevice> private constructor(
-    val region: Region<T>, parentCachedImage: BufferedImage? = null
-) : Region<T>(
+class CachedRegion<T : IDevice<T, R>, R : Region<T, R>> private constructor(
+    val region: Region<T, R>, parentCachedImage: BufferedImage? = null
+) : Region<CachedDevice<T, R>, CachedRegion<T, R>>(
     region.x,
     region.y,
     region.width,
     region.height,
-    region.device,
+    CachedDevice(region.device),
     region.screen
 ) {
-    constructor(region: Region<T>) : this(region, null)
+    constructor(region: Region<T, R>) : this(region, null)
 
     private val cachedImage = parentCachedImage ?: region.capture()
     override fun capture(): BufferedImage = cachedImage
-
-    override fun mapRectangleToRegion(rect: Rectangle) =
-        CachedRegion(
-            region.mapRectangleToRegion(rect),
-            cachedImage.getSubimage(rect.x, rect.y, rect.width, rect.height)
-        )
-
-    override fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<T> =
-        region.mapFindResultToRegion(result)
 
     override fun click(random: Boolean) = region.click()
 
@@ -40,16 +29,18 @@ class CachedRegion<T : IDevice> private constructor(
     /**
      * Copy constructor, the new cached region will be the snapshot at the time of copy
      */
+    @Suppress("UNCHECKED_CAST")
     override fun copy(
         x: Pixels,
         y: Pixels,
         width: Pixels,
         height: Pixels,
-        device: T,
+        device: CachedDevice<T, R>,
         screen: Int
-    ): CachedRegion<T> {
-        return region.copy(x, y, width, height, device, screen).asCachedRegion()
+    ): CachedRegion<T, R> {
+        return CachedRegion(
+            region.copy(x, y, width, height, device.device as T, screen),
+            cachedImage
+        )
     }
 }
-
-fun <T : IDevice> Region<T>.asCachedRegion(): CachedRegion<T> = CachedRegion(this)

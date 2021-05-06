@@ -25,7 +25,7 @@ import kotlin.random.Random
  * @property device Device that the region belongs to
  * @property screen Screen index
  */
-abstract class Region<T : IDevice>(
+abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
     x: Pixels,
     y: Pixels,
     width: Pixels,
@@ -41,9 +41,10 @@ abstract class Region<T : IDevice>(
      * @param region The region containing the matched location
      * @param score The similarity score given by the matcher
      */
-    data class RegionFindResult<T : IDevice>(val region: Region<T>, val score: kotlin.Double) {
-        inline fun <reified R : Region<T>> region() = region as R
-    }
+    data class RegionFindResult<T : IDevice<T, R>, R : Region<T, R>>(
+        val region: R,
+        val score: kotlin.Double
+    )
 
     companion object {
         val DEFAULT_MATCHER = DefaultTemplateMatcher()
@@ -81,7 +82,9 @@ abstract class Region<T : IDevice>(
      * @param rect Rectangle to map
      * @return New [Region] with mapped rectangle
      */
-    abstract fun mapRectangleToRegion(rect: Rectangle): Region<T>
+    fun mapRectangleToRegion(rect: Rectangle): R {
+        return copy(rect.x + x, rect.y + y, rect.width, rect.height, device, screen)
+    }
 
     /**
      * Maps a [ITemplateMatcher.FindResult] onto this region
@@ -89,7 +92,9 @@ abstract class Region<T : IDevice>(
      * @param result [ITemplateMatcher.FindResult] to map
      * @return New [Region] with mapped result
      */
-    abstract fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<T>
+    fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<T, R> {
+        return RegionFindResult(mapRectangleToRegion(result.rectangle), result.score)
+    }
 
     /**
      * Gets the last screen capture of the region
@@ -124,29 +129,10 @@ abstract class Region<T : IDevice>(
      * @return New [Region] representing this sub region
      * @throws IllegalArgumentException if new sub region is not contained in the current region
      */
-    fun subRegion(x: Pixels, y: Pixels, width: Pixels, height: Pixels): Region<T> {
+    fun subRegion(x: Pixels, y: Pixels, width: Pixels, height: Pixels): R {
         val r = mapRectangleToRegion(Rectangle(x, y, width, height))
         require(contains(r)) { "Sub-region must be smaller than the current region" }
         return r
-    }
-
-    /**
-     * Gets a smaller region that is contained in this region.
-     *
-     * @param x x Offset relative to the x coordinate of this region
-     * @param y y Offset relative to the y coordinate of this region
-     * @param width Width of sub region
-     * @param height Height of sub region
-     * @return New [Region] representing this sub region
-     * @throws IllegalArgumentException if new sub region is not contained in the current region
-     */
-    inline fun <reified R : Region<T>> subRegionAs(
-        x: Pixels,
-        y: Pixels,
-        width: Pixels,
-        height: Pixels
-    ): R {
-        return subRegion(x, y, width, height) as R
     }
 
     /**
@@ -155,7 +141,7 @@ abstract class Region<T : IDevice>(
      * @param template Template to use for matching
      * @return Results of the find operation
      */
-    fun findBest(template: ITemplate): RegionFindResult<T>? {
+    fun findBest(template: ITemplate): RegionFindResult<T, R>? {
         return findBest(template, 1).firstOrNull()
     }
 
@@ -166,7 +152,7 @@ abstract class Region<T : IDevice>(
      * @param count Max number of matches to find
      * @return Results of the find operation
      */
-    fun findBest(template: ITemplate, count: Int): List<RegionFindResult<T>> {
+    fun findBest(template: ITemplate, count: Int): List<RegionFindResult<T, R>> {
         val image = _lastScreenCapture?.let { (lastTime, img) ->
             if (System.currentTimeMillis() - lastTime > FIND_REFRESH) capture() else img
         } ?: capture()
@@ -200,9 +186,9 @@ abstract class Region<T : IDevice>(
      * @param timeout Find operation will end after [timeout] millis
      * @return Region that matched with template or null if find operation timed out
      */
-    suspend fun waitHas(template: ITemplate, timeout: Millis): Region<T>? {
+    suspend fun waitHas(template: ITemplate, timeout: Millis): R? {
         return withTimeoutOrNull(timeout) {
-            var region: Region<T>? = null
+            var region: R? = null
             while (isActive && region == null) {
                 region = findBest(template)?.region
             }
@@ -219,9 +205,9 @@ abstract class Region<T : IDevice>(
      * @param timeout Find operation will end after [timeout] millis
      * @return Region that matched with template or null if template couldn't be matched to begin with
      */
-    suspend fun waitDoesntHave(template: ITemplate, timeout: Millis): Region<T>? {
+    suspend fun waitDoesntHave(template: ITemplate, timeout: Millis): R? {
         return withTimeoutOrNull(timeout) {
-            var region: Region<T>? = findBest(template)?.region
+            var region: R? = findBest(template)?.region
             while (isActive && region != null) {
                 region = findBest(template)?.region
             }
@@ -232,14 +218,14 @@ abstract class Region<T : IDevice>(
     /**
      * @see waitHas
      */
-    fun waitHasBlocking(template: ITemplate, timeout: Millis): Region<T>? = runBlocking {
+    fun waitHasBlocking(template: ITemplate, timeout: Millis): R? = runBlocking {
         waitHas(template, timeout)
     }
 
     /**
      * @see waitDoesntHave
      */
-    fun waitDoesntHaveBlocking(template: ITemplate, timeout: Millis): Region<T>? = runBlocking {
+    fun waitDoesntHaveBlocking(template: ITemplate, timeout: Millis): R? = runBlocking {
         waitDoesntHave(template, timeout)
     }
 
@@ -251,7 +237,7 @@ abstract class Region<T : IDevice>(
      * 0 if area is the same;
      * <0 if this region is smaller than the other
      */
-    fun compareTo(other: Region<T>): Int {
+    fun compareTo(other: R): Int {
         return area - other.area
     }
 
@@ -273,22 +259,12 @@ abstract class Region<T : IDevice>(
         height: Pixels = this.height,
         device: T = this.device,
         screen: Int = this.screen
-    ): Region<T>
-
-    /**
-     * Copy constructor
-     */
-    inline fun <reified R : Region<T>> copyAs(
-        x: Pixels = this.x,
-        y: Pixels = this.y,
-        width: Pixels = this.width,
-        height: Pixels = this.height,
-        device: T = this.device,
-        screen: Int = this.screen
-    ): R = copy(x, y, width, height, device, screen) as R
+    ): R
 
     @Deprecated("Use copy instead", ReplaceWith("copy()"))
-    final override fun clone(): Any = error("Use Region<T>.copy()")
+    final override fun clone(): Any = error("Use Region<T, R>.copy()")
+
+    fun asCachedRegion(): CachedRegion<T, R> = CachedRegion(this)
 
     //<editor-fold desc="Quick input shortcuts">
 
@@ -314,7 +290,7 @@ abstract class Region<T : IDevice>(
         random: Boolean = true,
         period: Millis = 100,
         timeout: Millis = -1,
-        condition: Region<T>.() -> Boolean
+        condition: Region<T, R>.() -> Boolean
     ) {
         if (timeout > 0) {
             withTimeout(timeout) {
@@ -347,7 +323,7 @@ abstract class Region<T : IDevice>(
         random: Boolean = true,
         period: Millis = 100,
         timeout: Millis = -1,
-        condition: Region<T>.(ITemplate) -> Boolean
+        condition: Region<T, R>.(ITemplate) -> Boolean
     ) {
         val r = findBest(template)?.region ?: return
         r.clickWhile(random, period, timeout) { condition(this, template) }
@@ -363,3 +339,8 @@ abstract class Region<T : IDevice>(
 
     //</editor-fold>
 }
+
+/**
+ * Provided as a short hand for `Region<*, *>`
+ */
+typealias AnyRegion = Region<*, *>
