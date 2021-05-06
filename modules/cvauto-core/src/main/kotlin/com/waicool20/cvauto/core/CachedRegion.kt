@@ -19,8 +19,8 @@ class CachedRegion<T : IDevice<T, R>, R : Region<T, R>> private constructor(
 ) {
     constructor(region: Region<T, R>) : this(region, null)
 
-    private val cachedImage = parentCachedImage ?: region.capture()
-    override fun capture(): BufferedImage = cachedImage
+    private val cachedImage = parentCachedImage ?: region.device.screens[screen].capture()
+    override fun capture(): BufferedImage = cachedImage.getSubimage(x, y, width, height)
 
     override fun click(random: Boolean) = region.click()
 
