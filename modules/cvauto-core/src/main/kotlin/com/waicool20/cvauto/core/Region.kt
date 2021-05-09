@@ -32,7 +32,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
     height: Pixels,
     val device: T,
     val screen: Int
-) : Rectangle(x, y, width, height) {
+) : Rectangle(x, y, width, height), Comparable<Region<T, R>> {
     class CaptureTimeoutException : Exception("Timed out waiting for capture")
 
     /**
@@ -237,7 +237,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * 0 if area is the same;
      * <0 if this region is smaller than the other
      */
-    fun compareTo(other: R): Int {
+    override fun compareTo(other: Region<T, R>): Int {
         return area - other.area
     }
 
