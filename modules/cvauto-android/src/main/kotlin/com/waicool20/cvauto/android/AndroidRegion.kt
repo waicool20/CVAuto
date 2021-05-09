@@ -5,9 +5,7 @@ import com.waicool20.cvauto.core.Pixels
 import com.waicool20.cvauto.core.Region
 import com.waicool20.cvauto.core.input.IInput
 import com.waicool20.cvauto.core.input.ITouchInterface
-import com.waicool20.cvauto.util.matching.ITemplateMatcher
 import net.jpountz.lz4.LZ4FrameInputStream
-import java.awt.Rectangle
 import java.awt.color.ColorSpace
 import java.awt.image.*
 import java.io.DataInputStream
@@ -28,7 +26,7 @@ class AndroidRegion(
     device: AndroidDevice,
     screen: Int
 ) : Region<AndroidDevice, AndroidRegion>(x, y, width, height, device, screen) {
-    private val executor = Executors.newCachedThreadPool()
+    private val executor = Executors.newSingleThreadExecutor()
 
     enum class CompressionMode {
         NONE, GZIP, LZ4
@@ -83,7 +81,11 @@ class AndroidRegion(
         executor.execute {
             val last = device.screens[screen]._lastScreenCapture
             if (last != null && (normalCapturing.get() || System.currentTimeMillis() - last.first <= 66)) {
-                img = last.second.getSubimage(x, y, width, height)
+                img = if (isDeviceScreen()) {
+                    last.second
+                } else {
+                    last.second.getSubimage(x, y, width, height)
+                }
                 countDownLatch.countDown()
                 return@execute
             }
@@ -93,7 +95,11 @@ class AndroidRegion(
                 doNormalCapture()
             }
             device.screens[screen]._lastScreenCapture = System.currentTimeMillis() to capture
-            img = capture.getSubimage(x, y, width, height)
+            img = if (isDeviceScreen()) {
+                capture
+            } else {
+                capture.getSubimage(x, y, width, height)
+            }
             countDownLatch.countDown()
         }
         countDownLatch.await(CAPTURE_TIMEOUT, TimeUnit.MILLISECONDS)
@@ -166,20 +172,20 @@ class AndroidRegion(
     private fun doNormalCapture(): BufferedImage {
         normalCapturing.set(true)
         val throwables = mutableListOf<Throwable>()
-        for (i in 0 until 10) {
+        for (i in 0 until 3) {
             val process: Process
             val inputStream = when (compressionMode) {
                 CompressionMode.NONE -> {
                     process = device.execute("screencap")
-                    DataInputStream(process.inputStream)
+                    process.inputStream
                 }
                 CompressionMode.GZIP -> {
                     process = device.execute("screencap | toybox gzip -1")
-                    DataInputStream(GZIPInputStream(process.inputStream))
+                    GZIPInputStream(process.inputStream)
                 }
                 CompressionMode.LZ4 -> {
                     process = device.execute("screencap | /data/local/tmp/lz4 -c -1")
-                    DataInputStream(LZ4FrameInputStream(process.inputStream))
+                    LZ4FrameInputStream(process.inputStream)
                 }
             }
             try {
@@ -199,7 +205,8 @@ class AndroidRegion(
                     inputStream.skip(4)
                 }
                 val img = createByteRGBBufferedImage(width, height, true)
-                inputStream.readFully((img.raster.dataBuffer as DataBufferByte).data)
+                val buffer = (img.raster.dataBuffer as DataBufferByte).data
+                inputStream.readNBytes(buffer, 0, buffer.size)
                 normalCapturing.set(false)
                 return img
             } catch (t: Throwable) {

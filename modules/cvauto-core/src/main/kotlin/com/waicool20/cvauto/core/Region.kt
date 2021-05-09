@@ -120,6 +120,14 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
     }
 
     /**
+     * Checks if this region is the device screen or a copy of it
+     */
+    fun isDeviceScreen(): Boolean {
+        val parent = device.screens[screen]
+        return this == parent || (parent.screen == screen && contains(parent))
+    }
+
+    /**
      * Gets a smaller region that is contained in this region.
      *
      * @param x x Offset relative to the x coordinate of this region
