@@ -73,12 +73,8 @@ class AndroidTouchInterface private constructor(
 
     override fun gesture(swipes: List<ITouchInterface.Swipe>, duration: Millis) =
         synchronized(this) {
-            swipes.forEach {
-                touchMove(it.slot, it.x1, it.y1)
-                touchDown(it.slot)
-            }
-            TimeUnit.MILLISECONDS.sleep(10)
-
+            swipes.forEach { touchMove(it.slot, it.x1, it.y1) }
+            swipes.forEach { touchDown(it.slot) }
             val dist = swipes.maxOf {
                 (it.x2 - it.x1) * (it.x2 - it.x1) + (it.y2 - it.y1) * (it.y2 - it.y1)
             }.toDouble()
@@ -91,7 +87,6 @@ class AndroidTouchInterface private constructor(
                     touchMove(swipe.slot, stepX, stepY)
                 }
             }
-            TimeUnit.MILLISECONDS.sleep(10)
             swipes.forEach { touchUp(it.slot) }
             TimeUnit.MILLISECONDS.sleep(settings.postTapDelay)
         }
