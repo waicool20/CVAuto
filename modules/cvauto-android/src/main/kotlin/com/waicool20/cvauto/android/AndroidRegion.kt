@@ -177,7 +177,7 @@ class AndroidRegion(
             val inputStream = when (compressionMode) {
                 CompressionMode.NONE -> {
                     process = device.execute("screencap")
-                    process.inputStream
+                    process.inputStream.buffered(1024 * 1024)
                 }
                 CompressionMode.GZIP -> {
                     process = device.execute("screencap | toybox gzip -1")
