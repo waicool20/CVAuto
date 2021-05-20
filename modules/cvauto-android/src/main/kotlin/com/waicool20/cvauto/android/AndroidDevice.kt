@@ -12,7 +12,8 @@ import kotlin.io.path.outputStream
 /**
  * Represents an android device
  */
-class AndroidDevice internal constructor(val serial: String) : IDevice<AndroidDevice, AndroidRegion> {
+class AndroidDevice internal constructor(val serial: String) :
+    IDevice<AndroidDevice, AndroidRegion> {
     /**
      * Wrapper class containing the basic properties of an android device
      */
@@ -42,9 +43,11 @@ class AndroidDevice internal constructor(val serial: String) : IDevice<AndroidDe
         val props = execute("getprop").readLines().mapNotNull { str ->
             Regex("\\[(.*?)]: \\[(.*?)]").matchEntire(str)?.groupValues?.let { it[1] to it[2] }
         }.toMap()
+
+        val wmsize = execute("wm size").readText().trim()
         val (width, height) = Regex("Physical size: (\\d+?)x(\\d+?)")
-            .matchEntire(execute("wm size").readText().trim())?.destructured
-            ?: error("Could not detect display dimensions for device $serial")
+            .matchEntire(wmsize)?.destructured
+            ?: error("Could not detect display dimensions for device $serial, emulator returned: $wmsize")
 
         properties = Properties(
             androidVersion = props["ro.build.version.release"] ?: "Unknown",
