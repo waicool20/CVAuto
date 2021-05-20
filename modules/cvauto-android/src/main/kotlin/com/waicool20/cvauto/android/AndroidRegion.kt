@@ -10,9 +10,9 @@ import java.awt.color.ColorSpace
 import java.awt.image.*
 import java.io.DataInputStream
 import java.io.EOFException
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPInputStream
 import kotlin.concurrent.thread
@@ -76,18 +76,14 @@ class AndroidRegion(
     var compressionMode = CompressionMode.LZ4
 
     override fun capture(): BufferedImage {
-        var img: BufferedImage? = null
-        val countDownLatch = CountDownLatch(1)
-        executor.execute {
+        val future = executor.submit<BufferedImage> {
             val last = device.screens[screen]._lastScreenCapture
             if (last != null && (normalCapturing.get() || System.currentTimeMillis() - last.first <= 66)) {
-                img = if (isDeviceScreen()) {
+                return@submit if (isDeviceScreen()) {
                     last.second
                 } else {
                     last.second.getSubimage(x, y, width, height)
                 }
-                countDownLatch.countDown()
-                return@execute
             }
             val capture = if (fastCaptureMode) {
                 doFastCapture()
@@ -95,15 +91,17 @@ class AndroidRegion(
                 doNormalCapture()
             }
             device.screens[screen]._lastScreenCapture = System.currentTimeMillis() to capture
-            img = if (isDeviceScreen()) {
+            return@submit if (isDeviceScreen()) {
                 capture
             } else {
                 capture.getSubimage(x, y, width, height)
             }
-            countDownLatch.countDown()
         }
-        countDownLatch.await(CAPTURE_TIMEOUT, TimeUnit.MILLISECONDS)
-        return img ?: throw CaptureTimeoutException()
+        try {
+            return future.get(CAPTURE_TIMEOUT, TimeUnit.MILLISECONDS)
+        } catch (e: TimeoutException) {
+            throw CaptureTimeoutException()
+        }
     }
 
     override fun click(random: Boolean) {
