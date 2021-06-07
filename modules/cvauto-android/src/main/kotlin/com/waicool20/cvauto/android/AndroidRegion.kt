@@ -32,39 +32,6 @@ class AndroidRegion(
         NONE, GZIP, LZ4
     }
 
-    companion object {
-        private val _fastCaptureMode = AtomicBoolean(false)
-        private var screenRecordProcess: Process? = null
-        private var lastCapture: BufferedImage? = null
-        private var lastCaptureTime = System.currentTimeMillis()
-        private var _captureFPS = 0.0
-        private val normalCapturing = AtomicBoolean(false)
-
-        init {
-            Runtime.getRuntime().addShutdownHook(Thread {
-                screenRecordProcess?.destroy()
-            })
-        }
-    }
-
-    /**
-     * Enables fast capture mode, applies to all [AndroidRegion]
-     * [capture] may return blank images shortly after enabling, some time is needed before
-     * process is fully started, typically waiting a few hundred ms is enough
-     */
-    var fastCaptureMode: Boolean
-        get() = _fastCaptureMode.get()
-        set(value) {
-            // Starts the process if trying to enable it
-            if (value) doFastCapture()
-            _fastCaptureMode.set(value)
-        }
-
-    /**
-     * Frames per Second for device, only valid when using fast capture mode
-     */
-    val captureFPS get() = _captureFPS
-
     /**
      * Compression of the captured image can reduce the amount of time it takes to copy it
      * from the emulator to pc memory, therefore reducing latency.
@@ -78,18 +45,14 @@ class AndroidRegion(
     override fun capture(): BufferedImage {
         val future = executor.submit<BufferedImage> {
             val last = device.screens[screen]._lastScreenCapture
-            if (last != null && (normalCapturing.get() || System.currentTimeMillis() - last.first <= 66)) {
+            if (last != null && System.currentTimeMillis() - last.first <= 66) {
                 return@submit if (isDeviceScreen()) {
                     last.second
                 } else {
                     last.second.getSubimage(x, y, width, height)
                 }
             }
-            val capture = if (fastCaptureMode) {
-                doFastCapture()
-            } else {
-                doNormalCapture()
-            }
+            val capture = doNormalCapture()
             device.screens[screen]._lastScreenCapture = System.currentTimeMillis() to capture
             return@submit if (isDeviceScreen()) {
                 capture
@@ -168,7 +131,6 @@ class AndroidRegion(
     }
 
     private fun doNormalCapture(): BufferedImage {
-        normalCapturing.set(true)
         val throwables = mutableListOf<Throwable>()
         for (i in 0 until 3) {
             val process: Process
@@ -205,7 +167,6 @@ class AndroidRegion(
                 val img = createByteRGBBufferedImage(width, height, true)
                 val buffer = (img.raster.dataBuffer as DataBufferByte).data
                 inputStream.readNBytes(buffer, 0, buffer.size)
-                normalCapturing.set(false)
                 return img
             } catch (t: Throwable) {
                 throwables.add(t)
@@ -215,36 +176,6 @@ class AndroidRegion(
             }
         }
         throw throwables.reduce { acc, _ -> Exception(acc) }
-    }
-
-    private fun doFastCapture(): BufferedImage {
-        if (screenRecordProcess == null || screenRecordProcess?.isAlive == false) {
-            thread(isDaemon = true) {
-                screenRecordProcess?.destroy()
-                screenRecordProcess =
-                    device.execute("screenrecord", "--output-format=raw-frames", "-")
-                val inputStream = DataInputStream(screenRecordProcess!!.inputStream)
-                while (screenRecordProcess?.isAlive == true && fastCaptureMode) {
-                    lastCapture = try {
-                        createByteRGBBufferedImage(
-                            device.properties.displayWidth,
-                            device.properties.displayHeight
-                        ).apply { inputStream.readFully((raster.dataBuffer as DataBufferByte).data) }
-                    } catch (e: EOFException) {
-                        break
-                    }
-                    val current = System.currentTimeMillis()
-                    _captureFPS = (captureFPS + 1000.0 / (current - lastCaptureTime)) / 2
-                    lastCaptureTime = current
-                }
-                screenRecordProcess?.destroy()
-                _captureFPS = 0.0
-            }
-        }
-        return lastCapture ?: createByteRGBBufferedImage(
-            device.properties.displayWidth,
-            device.properties.displayHeight
-        )
     }
 
     @Throws(NegativeArraySizeException::class)
