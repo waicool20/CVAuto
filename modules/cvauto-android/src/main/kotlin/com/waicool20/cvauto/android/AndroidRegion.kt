@@ -8,14 +8,10 @@ import com.waicool20.cvauto.core.input.ITouchInterface
 import net.jpountz.lz4.LZ4FrameInputStream
 import java.awt.color.ColorSpace
 import java.awt.image.*
-import java.io.DataInputStream
-import java.io.EOFException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.GZIPInputStream
-import kotlin.concurrent.thread
 import kotlin.math.roundToInt
 
 class AndroidRegion(
@@ -26,7 +22,10 @@ class AndroidRegion(
     device: AndroidDevice,
     screen: Int
 ) : Region<AndroidDevice, AndroidRegion>(x, y, width, height, device, screen) {
-    private val executor = Executors.newSingleThreadExecutor()
+
+    companion object {
+        private val executor = Executors.newSingleThreadExecutor()
+    }
 
     enum class CompressionMode {
         NONE, GZIP, LZ4
@@ -141,9 +140,10 @@ class AndroidRegion(
                 }
                 CompressionMode.GZIP -> {
                     process = device.execute("screencap | toybox gzip -1")
-                    GZIPInputStream(process.inputStream)
+                    GZIPInputStream(process.inputStream).buffered(1024 * 1024)
                 }
                 CompressionMode.LZ4 -> {
+                    // LZ4 mode runs slower if buffered, maybe it has internal buffer already
                     process = device.execute("screencap | /data/local/tmp/lz4 -c -1")
                     LZ4FrameInputStream(process.inputStream)
                 }
@@ -164,9 +164,15 @@ class AndroidRegion(
                     // https://android.googlesource.com/platform/frameworks/base/+/refs/heads/nougat-release/cmds/screencap/screencap.cpp#191
                     inputStream.skip(4)
                 }
-                val img = createByteRGBBufferedImage(width, height, true)
+                val img = createByteRGBBufferedImage(width, height, false)
                 val buffer = (img.raster.dataBuffer as DataBufferByte).data
-                inputStream.readNBytes(buffer, 0, buffer.size)
+                for (n in buffer.indices step 3) {
+                    // Data comes in RGBA byte format, alpha byte is unused and is discarded
+                    buffer[n] = inputStream.read().toByte()
+                    buffer[n + 1] = inputStream.read().toByte()
+                    buffer[n + 2] = inputStream.read().toByte()
+                    inputStream.skip(1)
+                }
                 return img
             } catch (t: Throwable) {
                 throwables.add(t)
