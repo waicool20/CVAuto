@@ -8,6 +8,7 @@ import com.waicool20.cvauto.core.input.ITouchInterface
 import net.jpountz.lz4.LZ4FrameInputStream
 import java.awt.color.ColorSpace
 import java.awt.image.*
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -63,6 +64,8 @@ class AndroidRegion(
             return future.get(CAPTURE_TIMEOUT, TimeUnit.MILLISECONDS)
         } catch (e: TimeoutException) {
             throw CaptureTimeoutException()
+        } catch (e: ExecutionException) {
+            throw e.cause ?: e
         }
     }
 
@@ -181,7 +184,7 @@ class AndroidRegion(
                 process.destroy()
             }
         }
-        throw throwables.reduce { acc, _ -> Exception(acc) }
+        throw CaptureIOException(throwables.reduce { acc, _ -> Exception(acc) })
     }
 
     @Throws(NegativeArraySizeException::class)

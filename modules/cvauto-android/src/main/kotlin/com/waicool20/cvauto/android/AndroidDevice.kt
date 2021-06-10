@@ -187,6 +187,13 @@ class AndroidDevice internal constructor(val serial: String) :
         scrcpy = Scrcpy.getForDevice(this)
     }
 
+    /**
+     * Checks if this device is still reachable by ADB
+     */
+    fun isConnected(): Boolean {
+        return ADB.getDevices().contains(this)
+    }
+
     override fun toString(): String {
         return "AndroidDevice(serial = $serial)"
     }
