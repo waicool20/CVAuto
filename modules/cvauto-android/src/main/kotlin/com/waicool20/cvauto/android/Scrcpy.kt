@@ -24,6 +24,7 @@ import java.io.Closeable
 import java.net.ServerSocket
 import java.net.Socket
 import java.nio.file.Path
+import kotlin.concurrent.thread
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.notExists
 import kotlin.io.path.outputStream
@@ -56,7 +57,7 @@ class Scrcpy private constructor(
                 "CLASSPATH=/data/local/tmp/scrcpy-server.jar app_process / com.genymobile.scrcpy.Server",
                 VERSION,
                 /* Log Level ( INFO, DEBUG, WARN, ERROR ) */
-                "DEBUG",
+                "INFO",
                 /* Max Size */
                 "$MAX_SIZE",
                 /* Bitrate ( kbps ) */
@@ -136,7 +137,22 @@ class Scrcpy private constructor(
         }
     }
 
+    private val discardThread = thread(name = "Scrcpy Discard Thread", isDaemon = true) {
+        // For now, we discard the data coming from video socket, since we're not using it
+        val skipBuffer = ByteArray(1024)
+        val vis = video.getInputStream()
+        var n = 0
+        try {
+            while (n >= 0) {
+                n = vis.read(skipBuffer)
+            }
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
     override fun close() {
+        discardThread.interrupt()
         process.destroy()
         ADB.execute("forward", "--remove", "tcp:$port")
     }
