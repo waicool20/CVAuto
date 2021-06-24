@@ -7,7 +7,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.10")
     }
 }
 
@@ -33,7 +33,7 @@ allprojects {
         val testImplementation by configurations
         val testRuntimeOnly by configurations
         val versions = object {
-            val KotlinCoroutines = "1.5.0-RC"
+            val KotlinCoroutines = "1.5.0"
         }
 
         implementation(kotlin("stdlib-jdk8"))
