@@ -8,11 +8,10 @@ import com.waicool20.cvauto.core.input.ITouchInterface
 import net.jpountz.lz4.LZ4FrameInputStream
 import java.awt.color.ColorSpace
 import java.awt.image.*
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
+import java.util.concurrent.*
+import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.GZIPInputStream
+import kotlin.concurrent.withLock
 import kotlin.math.roundToInt
 
 class AndroidRegion(
@@ -25,7 +24,8 @@ class AndroidRegion(
 ) : Region<AndroidDevice, AndroidRegion>(x, y, width, height, device, screen) {
 
     companion object {
-        private val executor = Executors.newSingleThreadExecutor()
+        private val executorLock = ReentrantLock()
+        private var executor = Executors.newSingleThreadExecutor()
     }
 
     enum class CompressionMode {
@@ -43,29 +43,33 @@ class AndroidRegion(
     var compressionMode = CompressionMode.LZ4
 
     override fun capture(): BufferedImage {
-        val future = executor.submit<BufferedImage> {
-            val last = device.screens[screen]._lastScreenCapture
-            if (last != null && System.currentTimeMillis() - last.first <= 66) {
+        return executorLock.withLock {
+            val future = executor.submit<BufferedImage> {
+                val last = device.screens[screen]._lastScreenCapture
+                if (last != null && System.currentTimeMillis() - last.first <= 66) {
+                    return@submit if (isDeviceScreen()) {
+                        last.second
+                    } else {
+                        last.second.getSubimage(x, y, width, height)
+                    }
+                }
+                val capture = doNormalCapture()
+                device.screens[screen]._lastScreenCapture = System.currentTimeMillis() to capture
                 return@submit if (isDeviceScreen()) {
-                    last.second
+                    capture
                 } else {
-                    last.second.getSubimage(x, y, width, height)
+                    capture.getSubimage(x, y, width, height)
                 }
             }
-            val capture = doNormalCapture()
-            device.screens[screen]._lastScreenCapture = System.currentTimeMillis() to capture
-            return@submit if (isDeviceScreen()) {
-                capture
-            } else {
-                capture.getSubimage(x, y, width, height)
+            try {
+                future.get(CAPTURE_TIMEOUT, TimeUnit.MILLISECONDS)
+            } catch (e: TimeoutException) {
+                executor.shutdownNow()
+                executor = Executors.newSingleThreadExecutor()
+                throw CaptureTimeoutException()
+            } catch (e: ExecutionException) {
+                throw e.cause ?: e
             }
-        }
-        try {
-            return future.get(CAPTURE_TIMEOUT, TimeUnit.MILLISECONDS)
-        } catch (e: TimeoutException) {
-            throw CaptureTimeoutException()
-        } catch (e: ExecutionException) {
-            throw e.cause ?: e
         }
     }
 
