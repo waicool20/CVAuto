@@ -8,7 +8,10 @@ import com.waicool20.cvauto.core.input.ITouchInterface
 import net.jpountz.lz4.LZ4FrameInputStream
 import java.awt.color.ColorSpace
 import java.awt.image.*
-import java.util.concurrent.*
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.GZIPInputStream
 import kotlin.concurrent.withLock
@@ -47,10 +50,16 @@ class AndroidRegion(
             val future = executor.submit<BufferedImage> {
                 val last = device.screens[screen]._lastScreenCapture
                 if (last != null && System.currentTimeMillis() - last.first <= 66) {
+                    val bi = BufferedImage(
+                        last.second.colorModel,
+                        last.second.copyData(last.second.raster.createCompatibleWritableRaster()),
+                        last.second.colorModel.isAlphaPremultiplied,
+                        null
+                    )
                     return@submit if (isDeviceScreen()) {
-                        last.second
+                        bi
                     } else {
-                        last.second.getSubimage(x, y, width, height)
+                        bi.getSubimage(x, y, width, height)
                     }
                 }
                 val capture = doNormalCapture()
