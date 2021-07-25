@@ -122,18 +122,14 @@ class Scrcpy private constructor(
         }
 
         private fun getNextAvailablePort(): Int {
-            var port: Int? = null
-            for (i in 8080..8180) {
-                try {
-                    val s = ServerSocket(i)
-                    port = s.localPort
-                    s.close()
-                    return port
-                } catch (e: Exception) {
-                    continue
-                }
+            try {
+                val s = ServerSocket(0)
+                val port = s.localPort
+                s.close()
+                return port
+            } catch (e: Exception) {
+                error("Cannot find open port: ${e.message}")
             }
-            return port ?: error("Cannot find available port in range 8080-8180")
         }
     }
 
