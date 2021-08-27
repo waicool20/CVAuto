@@ -33,7 +33,7 @@ allprojects {
         val testImplementation by configurations
         val testRuntimeOnly by configurations
         val versions = object {
-            val KotlinCoroutines = "1.5.0"
+            val KotlinCoroutines = "1.5.1"
         }
 
         implementation(kotlin("stdlib-jdk8"))
