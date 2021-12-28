@@ -50,7 +50,6 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
     companion object {
         val DEFAULT_MATCHER = DefaultTemplateMatcher()
         var FIND_REFRESH: Millis = 32
-        var CAPTURE_TIMEOUT: Millis = 10000
     }
 
     /**

@@ -71,11 +71,12 @@ class AndroidRegion(
                 }
             }
             try {
-                future.get(CAPTURE_TIMEOUT, TimeUnit.MILLISECONDS)
+                future.get(10_000, TimeUnit.MILLISECONDS)
             } catch (e: TimeoutException) {
+                // Seems to work better if we just retry instead of re-throwing
                 executor.shutdownNow()
                 executor = Executors.newSingleThreadExecutor()
-                throw CaptureTimeoutException()
+                return capture()
             } catch (e: ExecutionException) {
                 throw e.cause ?: e
             }
