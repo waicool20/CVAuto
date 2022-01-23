@@ -192,13 +192,15 @@ class AndroidRegion(
                 }
                 return img
             } catch (t: Throwable) {
+                if (!device.isConnected()) throw AndroidDevice.UnexpectedDisconnectException()
                 throwables.add(t)
             } finally {
                 inputStream.close()
                 process.destroy()
             }
         }
-        throw CaptureIOException(throwables.reduce { acc, _ -> Exception(acc) })
+        throw CaptureIOException(throwables.reduceOrNull { acc, _ -> Exception(acc) }
+            ?: Exception("Unknown cause"))
     }
 
     @Throws(NegativeArraySizeException::class)

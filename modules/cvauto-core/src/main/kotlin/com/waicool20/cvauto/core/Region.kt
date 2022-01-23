@@ -34,7 +34,6 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
     val screen: Int
 ) : Rectangle(x, y, width, height), Comparable<Region<T, R>> {
     class CaptureIOException(cause: Throwable): Exception(cause)
-    class CaptureTimeoutException : Exception("Timed out waiting for capture")
 
     /**
      * Represents the results of a find operation run on the device

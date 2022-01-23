@@ -14,6 +14,8 @@ import kotlin.io.path.outputStream
  */
 class AndroidDevice internal constructor(val serial: String) :
     IDevice<AndroidDevice, AndroidRegion> {
+    class UnexpectedDisconnectException(): Exception("Device disconnected unexpectedly")
+
     /**
      * Wrapper class containing the basic properties of an android device
      */
