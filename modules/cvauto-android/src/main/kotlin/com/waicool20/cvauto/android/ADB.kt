@@ -97,7 +97,8 @@ object ADB {
     }
 
     private fun adbBinaryOk(): Boolean {
-        return execute().readText().startsWith("Android Debug Bridge version")
+        // Bug in some adb versions (32.0.0) causes it to SEGV with empty args
+        return execute("help").readText().startsWith("Android Debug Bridge version")
     }
 
     private fun downloadPlatformTools() {
