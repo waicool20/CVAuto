@@ -43,20 +43,20 @@ object ADB {
      */
     fun getDevices(): List<AndroidDevice> {
         return execute("devices")
-            .readLines()
-            .drop(1)
-            .filter { it.isNotBlank() }
-            .map { it.takeWhile { !it.isWhitespace() } }
-            .mapNotNull { serial ->
-                if (deviceCache.containsKey(serial)) {
-                    deviceCache[serial]
-                } else {
-                    try {
-                        AndroidDevice(serial).also { deviceCache[serial] = it }
-                    } catch (e: Exception) {
-                        println("Could not initialize device: $serial, skipping")
-                        e.printStackTrace()
-                        null
+            .readLines().drop(1)
+            .mapNotNull { Regex("(^.+?)\\s+(.+$)").matchEntire(it)?.destructured }
+            .mapNotNull { (serial, status) ->
+                when {
+                    status.equals("offline", true) -> null
+                    deviceCache.containsKey(serial) -> deviceCache[serial]
+                    else -> {
+                        try {
+                            AndroidDevice(serial).also { deviceCache[serial] = it }
+                        } catch (e: Exception) {
+                            println("Could not initialize device: $serial, skipping")
+                            e.printStackTrace()
+                            null
+                        }
                     }
                 }
             }
