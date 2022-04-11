@@ -21,12 +21,9 @@ package com.waicool20.cvauto.android
 
 import com.waicool20.cvauto.android.input.AndroidInput
 import java.io.Closeable
-import java.net.ServerSocket
 import java.net.Socket
 import java.nio.file.Path
-import kotlin.concurrent.thread
 import kotlin.io.path.absolutePathString
-import kotlin.io.path.notExists
 import kotlin.io.path.outputStream
 
 /**
@@ -39,51 +36,22 @@ class Scrcpy private constructor(
     val control: Socket
 ) : Closeable {
     companion object {
-        val VERSION = "1.17"
+        val VERSION = "1.23c"
         val PATH: Path = CVAutoAndroid.HOME_DIR.resolve("scrcpy-server")
-        val MAX_SIZE = 1024
 
         internal fun getForDevice(device: AndroidDevice): Scrcpy {
-            if (PATH.notExists()) extractServer()
+            extractServer()
 
             device.push(PATH, "/data/local/tmp/")
             device.executeShell("mv", "/data/local/tmp/scrcpy-server{,.jar}")
 
-            val port = getNextAvailablePort()
+            val port = NetUtils.getNextAvailablePort()
             ADB.execute("-s", device.serial, "forward", "tcp:$port", "localabstract:scrcpy")
 
             val process = ProcessBuilder(
                 ADB.binPath.absolutePathString(), "-s", device.serial, "shell",
                 "CLASSPATH=/data/local/tmp/scrcpy-server.jar app_process / com.genymobile.scrcpy.Server",
-                VERSION,
-                /* Log Level ( INFO, DEBUG, WARN, ERROR ) */
-                "INFO",
-                /* Max Size */
-                "$MAX_SIZE",
-                /* Bitrate ( kbps ) */
-                "1",
-                /* FPS */
-                "1",
-                /* Video Orientation ( 0 for normal orientation, inc 1 for every 90 deg ) */
-                "0",
-                /* Tunnel Forward ( true if using adb forward ) */
-                "true",
-                /* Crop ( - for No crop, otherwise w:h:x:y ) */
-                "-",
-                /* Send frame metadata */
-                "true",
-                /* Control */
-                "true",
-                /* Display ID */
-                "0",
-                /* Show Touches */
-                "true",
-                /* Stay Awake */
-                "true",
-                /* Codec Options ( - for default ) */
-                "-",
-                /* Encoder ( - for default ) */
-                "-",
+                "1.23", "log_level=INFO", "tunnel_forward=true"
             ).inheritIO().also {
                 it.environment()["ADB"] = ADB.binPath.absolutePathString()
             }.start()
@@ -120,35 +88,15 @@ class Scrcpy private constructor(
             inStream.close()
             outStream.close()
         }
-
-        private fun getNextAvailablePort(): Int {
-            try {
-                val s = ServerSocket(0)
-                val port = s.localPort
-                s.close()
-                return port
-            } catch (e: Exception) {
-                error("Cannot find open port: ${e.message}")
-            }
-        }
     }
 
-    private val discardThread = thread(name = "Scrcpy Discard Thread", isDaemon = true) {
-        // For now, we discard the data coming from video socket, since we're not using it
-        val skipBuffer = ByteArray(1024)
-        val vis = video.getInputStream()
-        var n = 0
-        try {
-            while (n >= 0) {
-                n = vis.read(skipBuffer)
-            }
-        } catch (e: Exception) {
-            // Ignore
-        }
-    }
+    var isClosed = false
+        private set
 
     override fun close() {
-        discardThread.interrupt()
+        isClosed = true
+        control.close()
+        video.close()
         process.destroy()
         ADB.execute("forward", "--remove", "tcp:$port")
     }

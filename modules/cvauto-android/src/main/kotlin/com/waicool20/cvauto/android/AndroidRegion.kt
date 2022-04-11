@@ -8,6 +8,8 @@ import com.waicool20.cvauto.core.input.ITouchInterface
 import net.jpountz.lz4.LZ4FrameInputStream
 import java.awt.color.ColorSpace
 import java.awt.image.*
+import java.io.InputStream
+import java.net.SocketException
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -26,43 +28,36 @@ class AndroidRegion(
     screen: Int
 ) : Region<AndroidDevice, AndroidRegion>(x, y, width, height, device, screen) {
 
+    data class Stats(var captureRequests: Long = 0, var cacheHits: Long = 0)
+
     companion object {
         private val executorLock = ReentrantLock()
         private var executor = Executors.newSingleThreadExecutor()
-    }
 
-    enum class CompressionMode {
-        NONE, GZIP, LZ4
-    }
+        private var _stats = Stats()
 
-    /**
-     * Compression of the captured image can reduce the amount of time it takes to copy it
-     * from the emulator to pc memory, therefore reducing latency.
-     *
-     * - LZ4: Best latency, default
-     * - GZIP: Slower than LZ4 but still much better than NONE
-     * - NONE: No compression
-     */
-    var compressionMode = CompressionMode.LZ4
+        val stats get() = _stats.copy()
+    }
 
     override fun capture(): BufferedImage {
+        _stats.captureRequests++
+        val last = device.screens[screen]._lastScreenCapture
+        if (last != null && System.currentTimeMillis() - last.first <= 66) {
+            _stats.cacheHits++
+            val bi = BufferedImage(
+                last.second.colorModel,
+                last.second.copyData(last.second.raster.createCompatibleWritableRaster()),
+                last.second.colorModel.isAlphaPremultiplied,
+                null
+            )
+            return if (isDeviceScreen()) bi else bi.getSubimage(x, y, width, height)
+        }
         return executorLock.withLock {
             val future = executor.submit<BufferedImage> {
-                val last = device.screens[screen]._lastScreenCapture
-                if (last != null && System.currentTimeMillis() - last.first <= 66) {
-                    val bi = BufferedImage(
-                        last.second.colorModel,
-                        last.second.copyData(last.second.raster.createCompatibleWritableRaster()),
-                        last.second.colorModel.isAlphaPremultiplied,
-                        null
-                    )
-                    return@submit if (isDeviceScreen()) {
-                        bi
-                    } else {
-                        bi.getSubimage(x, y, width, height)
-                    }
+                val capture = when (device.captureMethod) {
+                    AndroidDevice.CaptureMethod.SCREENCAP -> doNormalCapture()
+                    AndroidDevice.CaptureMethod.SCRCPY -> doScrcpyCapture()
                 }
-                val capture = doNormalCapture()
                 device.screens[screen]._lastScreenCapture = System.currentTimeMillis() to capture
                 return@submit if (isDeviceScreen()) {
                     capture
@@ -150,16 +145,16 @@ class AndroidRegion(
         val throwables = mutableListOf<Throwable>()
         for (i in 0 until 3) {
             val process: Process
-            val inputStream = when (compressionMode) {
-                CompressionMode.NONE -> {
+            val inputStream = when (device.compressionMode) {
+                AndroidDevice.CompressionMode.NONE -> {
                     process = device.execute("screencap")
                     process.inputStream.buffered(1024 * 1024)
                 }
-                CompressionMode.GZIP -> {
+                AndroidDevice.CompressionMode.GZIP -> {
                     process = device.execute("screencap | toybox gzip -1")
                     GZIPInputStream(process.inputStream).buffered(1024 * 1024)
                 }
-                CompressionMode.LZ4 -> {
+                AndroidDevice.CompressionMode.LZ4 -> {
                     // LZ4 mode runs slower if buffered, maybe it has internal buffer already
                     process = device.execute("screencap | /data/local/tmp/lz4 -c -1")
                     LZ4FrameInputStream(process.inputStream)
@@ -192,15 +187,47 @@ class AndroidRegion(
                 }
                 return img
             } catch (t: Throwable) {
-                if (!device.isConnected()) throw AndroidDevice.UnexpectedDisconnectException()
+                device.assertConnected()
                 throwables.add(t)
-            } finally {
-                inputStream.close()
-                process.destroy()
             }
         }
         throw CaptureIOException(throwables.reduceOrNull { acc, _ -> Exception(acc) }
             ?: Exception("Unknown cause"))
+    }
+
+    private var scrcpyStream: InputStream? = null
+
+    private fun doScrcpyCapture(): BufferedImage {
+        if (device.scrcpy.isClosed || device.scrcpy.video.isClosed || !device.scrcpy.video.isConnected) {
+            scrcpyStream = null
+            device.resetScrcpy()
+            return doScrcpyCapture()
+        }
+        try {
+            val inputStream = scrcpyStream ?: device.scrcpy.video.getInputStream().buffered()
+                .also { scrcpyStream = it }
+            val img = createByteRGBBufferedImage(
+                device.properties.displayWidth,
+                device.properties.displayHeight,
+                false
+            )
+            val buffer = (img.raster.dataBuffer as DataBufferByte).data
+            device.scrcpy.video.getOutputStream().write(1)
+            for (n in buffer.indices step 3) {
+                // Data comes in RGBA byte format, alpha byte is unused and is discarded
+                buffer[n] = inputStream.read().toByte()
+                buffer[n + 1] = inputStream.read().toByte()
+                buffer[n + 2] = inputStream.read().toByte()
+                inputStream.skip(1)
+            }
+            return img
+        } catch (e: SocketException) {
+            device.resetScrcpy()
+            return doScrcpyCapture()
+        } catch (t: Throwable) {
+            device.assertConnected()
+            throw CaptureIOException(t)
+        }
     }
 
     @Throws(NegativeArraySizeException::class)

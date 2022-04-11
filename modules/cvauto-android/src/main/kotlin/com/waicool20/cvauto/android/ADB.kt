@@ -37,6 +37,16 @@ object ADB {
     private val deviceCache = mutableMapOf<String, AndroidDevice>()
 
     /**
+     * Get instance of [AndroidDevice] with the given serial if its online
+     */
+    fun getDevice(serial: String): AndroidDevice? {
+        val device = deviceCache[serial] ?: getDevices().find { it.serial == serial }
+        if (device?.isConnected() == true) return device
+        deviceCache.remove(serial)
+        return null
+    }
+
+    /**
      * Gets instances of [AndroidDevice] for the devices that are currently connected to adb
      *
      * @return [AndroidDevice] list
@@ -92,7 +102,7 @@ object ADB {
     fun connect(address: String, onConnected: (AndroidDevice?) -> Unit = {}) {
         thread(name = "ADB Device Connect") {
             execute("connect", address).waitFor()
-            onConnected(getDevices().find { it.serial == address })
+            onConnected(getDevice(address))
         }
     }
 

@@ -4,6 +4,7 @@ import com.waicool20.cvauto.android.input.AndroidInput
 import com.waicool20.cvauto.core.IDevice
 import com.waicool20.cvauto.core.Pixels
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.deleteExisting
@@ -14,7 +15,8 @@ import kotlin.io.path.outputStream
  */
 class AndroidDevice internal constructor(val serial: String) :
     IDevice<AndroidDevice, AndroidRegion> {
-    class UnexpectedDisconnectException(): Exception("Device disconnected unexpectedly")
+    class UnexpectedDisconnectException(device: AndroidDevice) :
+        Exception("Device ${device.serial} disconnected unexpectedly")
 
     /**
      * Wrapper class containing the basic properties of an android device
@@ -68,6 +70,33 @@ class AndroidDevice internal constructor(val serial: String) :
     var scrcpy = Scrcpy.getForDevice(this)
         private set
 
+    enum class CaptureMethod {
+        SCREENCAP, SCRCPY
+    }
+
+    /**
+     * Capture method to use
+     *
+     * - [CaptureMethod.SCREENCAP]: Uses `screencap` command, a bit slower but reliable
+     * - [CaptureMethod.SCRCPY]: Uses custom scrcpy capture method
+     */
+    var captureMethod: CaptureMethod = CaptureMethod.SCRCPY
+
+    enum class CompressionMode {
+        NONE, GZIP, LZ4
+    }
+
+    /**
+     * Compression of the captured image can reduce the amount of time it takes to copy it
+     * from the emulator to pc memory, therefore reducing latency. Only applicable when
+     * [captureMethod] is [CaptureMethod.SCREENCAP]
+     *
+     * - [CompressionMode.LZ4]: Best latency, default
+     * - [CompressionMode.GZIP]: Slower than LZ4
+     * - [CompressionMode.NONE]: No compression
+     */
+    var compressionMode = CompressionMode.LZ4
+
     override val input = AndroidInput(this)
     override val screens: List<AndroidRegion> =
         listOf(AndroidRegion(0, 0, properties.displayWidth, properties.displayHeight, this, 0))
@@ -90,8 +119,8 @@ class AndroidDevice internal constructor(val serial: String) :
             tmp.deleteExisting()
             tmp.parent.deleteExisting()
         } catch (e: Exception) {
-            // Fallback to GZIP
-            screens.forEach { it.compressionMode = AndroidRegion.CompressionMode.GZIP }
+            // Fallback to None
+            compressionMode = CompressionMode.NONE
         }
     }
 
@@ -186,7 +215,13 @@ class AndroidDevice internal constructor(val serial: String) :
      */
     fun resetScrcpy() {
         scrcpy.close()
-        scrcpy = Scrcpy.getForDevice(this)
+        TimeUnit.MILLISECONDS.sleep(200)
+        try {
+            scrcpy = Scrcpy.getForDevice(this)
+        } catch (e: Exception) {
+            assertConnected()
+            throw e
+        }
     }
 
     /**
@@ -194,6 +229,10 @@ class AndroidDevice internal constructor(val serial: String) :
      */
     fun isConnected(): Boolean {
         return ADB.getDevices().contains(this)
+    }
+
+    internal fun assertConnected() {
+        if (!isConnected()) throw UnexpectedDisconnectException(this)
     }
 
     override fun toString(): String {
