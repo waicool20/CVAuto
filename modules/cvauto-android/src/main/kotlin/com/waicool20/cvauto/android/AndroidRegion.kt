@@ -203,9 +203,15 @@ class AndroidRegion(
             device.resetScrcpy()
             return doScrcpyCapture()
         }
+        val inputStream = try {
+            scrcpyStream?.takeIf { it.available() >= 0 } ?: device.scrcpy.video.getInputStream().buffered()
+        } catch (e: SocketException) {
+            scrcpyStream = null
+            device.resetScrcpy()
+            return doScrcpyCapture()
+        }
+        scrcpyStream = inputStream
         try {
-            val inputStream = scrcpyStream ?: device.scrcpy.video.getInputStream().buffered()
-                .also { scrcpyStream = it }
             val img = createByteRGBBufferedImage(
                 device.properties.displayWidth,
                 device.properties.displayHeight,
