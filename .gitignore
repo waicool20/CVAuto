@@ -182,3 +182,4 @@ gradle-app.setting
 
 test-assets
 **/test/kotlin/tmp
+**/bin/
