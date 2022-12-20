@@ -33,19 +33,15 @@ allprojects {
         val testImplementation by configurations
         val testRuntimeOnly by configurations
         val versions = object {
-            val KotlinCoroutines = "1.5.1"
+            val KotlinCoroutines = "1.6.4"
         }
 
         implementation(kotlin("stdlib-jdk8"))
         implementation(kotlin("reflect"))
-        implementation(
-            "org.jetbrains.kotlinx",
-            "kotlinx-coroutines-core",
-            versions.KotlinCoroutines
-        )
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${versions.KotlinCoroutines}")
 
         // Tests
-        testImplementation("org.junit.jupiter:junit-jupiter-api:5.5.2")
-        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.5.2")
+        testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
+        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.0")
     }
 }
