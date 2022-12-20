@@ -3,7 +3,6 @@ package com.waicool20.cvauto.core
 import com.waicool20.cvauto.core.input.IInput
 import com.waicool20.cvauto.core.template.ITemplate
 import com.waicool20.cvauto.util.area
-import com.waicool20.cvauto.util.asGrayF32
 import com.waicool20.cvauto.util.matching.DefaultTemplateMatcher
 import com.waicool20.cvauto.util.matching.ITemplateMatcher
 import kotlinx.coroutines.*
@@ -131,7 +130,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      *
      * @param x x Offset relative to the x coordinate of this region
      * @param y y Offset relative to the y coordinate of this region
-     * @param width Width of sub region
+     * @param width Width of subregion
      * @param height Height of sub region
      * @return New [Region] representing this sub region
      * @throws IllegalArgumentException if new sub region is not contained in the current region
@@ -163,7 +162,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
         val image = _lastScreenCapture?.let { (lastTime, img) ->
             if (System.currentTimeMillis() - lastTime > FIND_REFRESH) capture() else img
         } ?: capture()
-        return matcher.findBest(template, image.asGrayF32(), count).map(::mapFindResultToRegion)
+        return matcher.findBest(template, image, count).map(::mapFindResultToRegion)
     }
 
     /**

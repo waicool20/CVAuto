@@ -6,6 +6,7 @@ import com.waicool20.cvauto.core.template.ITemplate
 import com.waicool20.cvauto.util.*
 import com.waicool20.cvauto.util.matching.ITemplateMatcher.FindResult
 import java.awt.Rectangle
+import java.awt.image.BufferedImage
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -31,24 +32,25 @@ class DefaultTemplateMatcher : ITemplateMatcher {
 
     override val settings = Settings()
 
-    override fun findBest(template: ITemplate, image: GrayF32): FindResult? {
+    override fun findBest(template: ITemplate, image: BufferedImage): FindResult? {
         return findBest(template, image, 1).firstOrNull()
     }
 
-    override fun findBest(template: ITemplate, image: GrayF32, count: Int): List<FindResult> {
+    override fun findBest(template: ITemplate, image: BufferedImage, count: Int): List<FindResult> {
+        val f32Image = image.asGrayF32()
         val scaleFactor = when {
             settings.matchDimension <= 0 -> 1.0
-            image.width >= image.height -> min(
+            f32Image.width >= f32Image.height -> min(
                 1.0,
-                settings.matchDimension / image.width.toDouble()
+                settings.matchDimension / f32Image.width.toDouble()
             )
-            image.width < image.height -> min(
+            f32Image.width < f32Image.height -> min(
                 1.0,
-                settings.matchDimension / image.height.toDouble()
+                settings.matchDimension / f32Image.height.toDouble()
             )
             else -> 1.0
         }
-        val scaledImage = image.scale(scaleFactor).blurred(settings.blurRadius)
+        val scaledImage = f32Image.scale(scaleFactor).blurred(settings.blurRadius)
 
         val templateF32 = imageCache
             .getOrPut(template) { mutableMapOf() }
@@ -61,14 +63,14 @@ class DefaultTemplateMatcher : ITemplateMatcher {
             .getFindResults(threshold, scaleFactor, templateF32.width, templateF32.height)
 
         if (scaleFactor != 1.0) {
-            val bounds = Rectangle(0, 0, image.width, image.height)
-            // Filter really bad results
+            val bounds = Rectangle(0, 0, f32Image.width, f32Image.height)
+            // Filter awful results
             results = results.filter { it.score > threshold * 0.75 }
                 // Get a rectangle representing the approximate match area and grow it to allow for some error
                 .map { it.rectangle.apply { grow(50, 50) }.cropIntoRect(bounds) }
                 // Map it to the image
-                .map { it to image.subimage(it.x1, it.y1, it.x2, it.y2) }
-                // Do the fine match using the subimage
+                .map { it to f32Image.subimage(it.x1, it.y1, it.x2, it.y2) }
+                // Do the fine match using the sub-image
                 .flatMap { (subRect, subImage) ->
                     doMatch(templateF32, subImage, 1)
                         .getFindResults(threshold, 1.0, templateF32.width, templateF32.height)

@@ -1,9 +1,9 @@
 package com.waicool20.cvauto.util.matching
 
-import boofcv.struct.image.GrayF32
 import com.waicool20.cvauto.core.Pixels
 import com.waicool20.cvauto.core.template.ITemplate
 import java.awt.Rectangle
+import java.awt.image.BufferedImage
 
 /**
  * Interface class to implement for custom template matchers
@@ -20,7 +20,7 @@ interface ITemplateMatcher {
     open class Settings(
         /**
          * Images get scaled down based while maintaining ratio during matching,
-         * amount scaled = matchDimension / longest image edge
+         * amount scaled = matchDimension / the longest image edge
          * A smaller value will lead to faster matches but with poorer accuracy.
          * Set this to 0 or negative number to disable
          *
@@ -53,7 +53,7 @@ interface ITemplateMatcher {
      * @param image Base image to use for matching
      * @return Results of the match operation
      */
-    fun findBest(template: ITemplate, image: GrayF32): FindResult?
+    fun findBest(template: ITemplate, image: BufferedImage): FindResult?
 
     /**
      * Finds the best match for the given template inside the given image
@@ -63,5 +63,5 @@ interface ITemplateMatcher {
      * @param count Max number of matches to find
      * @return Results of the match operation
      */
-    fun findBest(template: ITemplate, image: GrayF32, count: Int): List<FindResult>
+    fun findBest(template: ITemplate, image: BufferedImage, count: Int): List<FindResult>
 }
