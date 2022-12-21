@@ -48,4 +48,21 @@ interface ITemplateMatcher {
      * @return Results of the match operation
      */
     fun findBest(template: ITemplate, image: BufferedImage, count: Int): List<FindResult>
+
+    fun List<FindResult>.removeOverlaps(): List<FindResult> {
+        val toRemoveIndices = mutableListOf<Int>()
+        for ((i, r1) in this.withIndex()) {
+            for ((j, r2) in this.withIndex()) {
+                if (i == j) continue
+                if (r1.rectangle.intersects(r2.rectangle)) {
+                    if (r1.score < r2.score) {
+                        toRemoveIndices.add(i)
+                    } else {
+                        toRemoveIndices.add(j)
+                    }
+                }
+            }
+        }
+        return filterIndexed { i, _ -> !toRemoveIndices.contains(i) }
+    }
 }

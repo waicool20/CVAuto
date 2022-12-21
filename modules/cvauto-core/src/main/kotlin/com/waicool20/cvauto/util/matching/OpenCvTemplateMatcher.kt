@@ -98,21 +98,4 @@ class OpenCvTemplateMatcher : ITemplateMatcher {
 
         return result.sortedByDescending { it.score }
     }
-
-    private fun List<ITemplateMatcher.FindResult>.removeOverlaps(): List<ITemplateMatcher.FindResult> {
-        val toRemoveIndices = mutableListOf<Int>()
-        for ((i, r1) in this.withIndex()) {
-            for ((j, r2) in this.withIndex()) {
-                if (i == j) continue
-                if (r1.rectangle.intersects(r2.rectangle)) {
-                    if (r1.score < r2.score) {
-                        toRemoveIndices.add(i)
-                    } else {
-                        toRemoveIndices.add(j)
-                    }
-                }
-            }
-        }
-        return filterIndexed { i, _ -> !toRemoveIndices.contains(i) }
-    }
 }
