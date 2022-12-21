@@ -3,8 +3,8 @@ package com.waicool20.cvauto.core
 import com.waicool20.cvauto.core.input.IInput
 import com.waicool20.cvauto.core.template.ITemplate
 import com.waicool20.cvauto.util.area
-import com.waicool20.cvauto.util.matching.DefaultTemplateMatcher
 import com.waicool20.cvauto.util.matching.ITemplateMatcher
+import com.waicool20.cvauto.util.matching.OpenCvTemplateMatcher
 import kotlinx.coroutines.*
 import java.awt.Point
 import java.awt.Rectangle
@@ -46,7 +46,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
     )
 
     companion object {
-        val DEFAULT_MATCHER = DefaultTemplateMatcher()
+        val DEFAULT_MATCHER = OpenCvTemplateMatcher()
         var FIND_REFRESH: Millis = 32
     }
 

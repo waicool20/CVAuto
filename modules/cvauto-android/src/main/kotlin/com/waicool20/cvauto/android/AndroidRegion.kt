@@ -5,6 +5,7 @@ import com.waicool20.cvauto.core.Pixels
 import com.waicool20.cvauto.core.Region
 import com.waicool20.cvauto.core.input.IInput
 import com.waicool20.cvauto.core.input.ITouchInterface
+import com.waicool20.cvauto.util.ImageUtils
 import net.jpountz.lz4.LZ4FrameInputStream
 import java.awt.color.ColorSpace
 import java.awt.image.*
@@ -176,7 +177,7 @@ class AndroidRegion(
                     // https://android.googlesource.com/platform/frameworks/base/+/refs/heads/nougat-release/cmds/screencap/screencap.cpp#191
                     inputStream.skip(4)
                 }
-                val img = createByteRGBBufferedImage(width, height, false)
+                val img = ImageUtils.createByteRGBBufferedImage(width, height, false)
                 val buffer = (img.raster.dataBuffer as DataBufferByte).data
                 for (n in buffer.indices step 3) {
                     // Data comes in RGBA byte format, alpha byte is unused and is discarded
@@ -212,7 +213,7 @@ class AndroidRegion(
         }
         scrcpyStream = inputStream
         try {
-            val img = createByteRGBBufferedImage(
+            val img = ImageUtils.createByteRGBBufferedImage(
                 device.properties.displayWidth,
                 device.properties.displayHeight,
                 false
@@ -234,24 +235,5 @@ class AndroidRegion(
             device.assertConnected()
             throw CaptureIOException(t)
         }
-    }
-
-    @Throws(NegativeArraySizeException::class)
-    private fun createByteRGBBufferedImage(
-        width: Int,
-        height: Int,
-        hasAlpha: Boolean = false
-    ): BufferedImage {
-        val cs = ColorSpace.getInstance(ColorSpace.CS_sRGB)
-        val cm: ColorModel
-        val raster: WritableRaster
-        if (hasAlpha) {
-            cm = ComponentColorModel(cs, true, false, ColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE)
-            raster = Raster.createInterleavedRaster(DataBuffer.TYPE_BYTE, width, height, 4, null)
-        } else {
-            cm = ComponentColorModel(cs, false, false, ColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE)
-            raster = Raster.createInterleavedRaster(DataBuffer.TYPE_BYTE, width, height, 3, null)
-        }
-        return BufferedImage(cm, raster, false, null)
     }
 }

@@ -19,29 +19,13 @@ interface ITemplateMatcher {
 
     open class Settings(
         /**
-         * Images get scaled down based while maintaining ratio during matching,
-         * amount scaled = matchDimension / the longest image edge
-         * A smaller value will lead to faster matches but with poorer accuracy.
-         * Set this to 0 or negative number to disable
-         *
-         */
-        open var matchDimension: Pixels = 0,
-        /**
          * Default threshold in case it isn't specified in the template
          */
         open var defaultThreshold: Double = 0.9,
         /**
          * Filter overlapping match results
          */
-        open var filterOverlap: Boolean = true,
-        /**
-         * Non-zero value will let the matcher blur the image before matching,
-         */
-        open var blurRadius: Int = 2,
-        /**
-         * Matching algorithm to use
-         */
-        open var evaluator: () -> EvaluatorMethodAdapter = { TemplateCosEffNorm() }
+        open var filterOverlap: Boolean = true
     )
 
     val settings: Settings
