@@ -5,10 +5,9 @@ import com.waicool20.cvauto.core.Pixels
 import com.waicool20.cvauto.core.Region
 import com.waicool20.cvauto.core.input.IInput
 import com.waicool20.cvauto.core.input.ITouchInterface
-import com.waicool20.cvauto.util.ImageUtils
 import net.jpountz.lz4.LZ4FrameInputStream
-import java.awt.color.ColorSpace
-import java.awt.image.*
+import java.awt.image.BufferedImage
+import java.awt.image.DataBufferByte
 import java.io.InputStream
 import java.net.SocketException
 import java.util.concurrent.ExecutionException
@@ -177,13 +176,13 @@ class AndroidRegion(
                     // https://android.googlesource.com/platform/frameworks/base/+/refs/heads/nougat-release/cmds/screencap/screencap.cpp#191
                     inputStream.skip(4)
                 }
-                val img = ImageUtils.createByteRGBBufferedImage(width, height, false)
+                val img = BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR)
                 val buffer = (img.raster.dataBuffer as DataBufferByte).data
                 for (n in buffer.indices step 3) {
-                    // Data comes in RGBA byte format, alpha byte is unused and is discarded
-                    buffer[n] = inputStream.read().toByte()
-                    buffer[n + 1] = inputStream.read().toByte()
+                    // Data comes in RGBA byte format, repack into BGR
                     buffer[n + 2] = inputStream.read().toByte()
+                    buffer[n + 1] = inputStream.read().toByte()
+                    buffer[n + 0] = inputStream.read().toByte()
                     inputStream.skip(1)
                 }
                 return img
@@ -205,7 +204,8 @@ class AndroidRegion(
             return doScrcpyCapture()
         }
         val inputStream = try {
-            scrcpyStream?.takeIf { it.available() >= 0 } ?: device.scrcpy.video.getInputStream().buffered()
+            scrcpyStream?.takeIf { it.available() >= 0 } ?: device.scrcpy.video.getInputStream()
+                .buffered()
         } catch (e: SocketException) {
             scrcpyStream = null
             device.resetScrcpy()
@@ -213,18 +213,18 @@ class AndroidRegion(
         }
         scrcpyStream = inputStream
         try {
-            val img = ImageUtils.createByteRGBBufferedImage(
+            val img = BufferedImage(
                 device.properties.displayWidth,
                 device.properties.displayHeight,
-                false
+                BufferedImage.TYPE_3BYTE_BGR
             )
             val buffer = (img.raster.dataBuffer as DataBufferByte).data
             device.scrcpy.video.getOutputStream().write(1)
             for (n in buffer.indices step 3) {
-                // Data comes in RGBA byte format, alpha byte is unused and is discarded
-                buffer[n] = inputStream.read().toByte()
-                buffer[n + 1] = inputStream.read().toByte()
+                // Data comes in RGBA byte format, repack into BGR
                 buffer[n + 2] = inputStream.read().toByte()
+                buffer[n + 1] = inputStream.read().toByte()
+                buffer[n + 0] = inputStream.read().toByte()
                 inputStream.skip(1)
             }
             return img

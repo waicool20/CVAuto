@@ -22,7 +22,6 @@ package com.waicool20.cvauto.util
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
-import org.opencv.imgproc.Imgproc
 import java.awt.image.BufferedImage
 import java.awt.image.DataBufferByte
 import kotlin.math.abs
@@ -45,12 +44,13 @@ fun BufferedImage.toMat(): Mat {
 }
 
 fun Mat.toBufferedImage(): BufferedImage {
-    val hasAlpha = channels() > 3
-    val img = if (channels() == 1) {
-        BufferedImage(width(), height(), BufferedImage.TYPE_BYTE_GRAY)
-    } else {
-        ImageUtils.createByteRGBBufferedImage(width(), height(), hasAlpha)
+    val type = when (val c = channels()) {
+        1 -> BufferedImage.TYPE_BYTE_GRAY
+        3 -> BufferedImage.TYPE_3BYTE_BGR
+        4 -> BufferedImage.TYPE_4BYTE_ABGR
+        else -> error("Unsupported channel number: $c")
     }
+    val img = BufferedImage(width(), height(), type)
     val data = (img.raster.dataBuffer as DataBufferByte).data
     get(intArrayOf(0, 0), data)
     return img
