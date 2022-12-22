@@ -1,18 +1,10 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-buildscript {
-    repositories {
-        maven {
-            url = uri("https://plugins.gradle.org/m2/")
-        }
-    }
-    dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.0")
-    }
+plugins {
+    kotlin("jvm") version "1.7.20"
 }
 
 allprojects {
-    apply(plugin = "java")
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
     group = "com.waicool20"
@@ -29,9 +21,6 @@ allprojects {
     }
 
     dependencies {
-        val implementation by configurations
-        val testImplementation by configurations
-        val testRuntimeOnly by configurations
         val versions = object {
             val KotlinCoroutines = "1.6.4"
         }
