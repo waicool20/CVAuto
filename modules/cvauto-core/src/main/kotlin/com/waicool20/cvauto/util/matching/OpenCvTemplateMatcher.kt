@@ -115,10 +115,12 @@ class OpenCvTemplateMatcher : ITemplateMatcher {
         for (point in points.toArray()) {
             val x = point.x.toInt()
             val y = point.y.toInt()
+            val score = output.at<Float>(y, x).v.toDouble()
+            if (score.isInfinite() || score.isNaN()) continue
             result.add(
                 ITemplateMatcher.FindResult(
                     Rectangle(x, y, template.width(), template.height()),
-                    output.at<Float>(y, x).v.toDouble()
+                    score
                 )
             )
         }
