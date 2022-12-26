@@ -1,9 +1,9 @@
 package com.waicool20.cvauto.util.matching
 
-import com.waicool20.cvauto.core.Pixels
 import com.waicool20.cvauto.core.template.ITemplate
 import java.awt.Rectangle
 import java.awt.image.BufferedImage
+import java.util.*
 
 /**
  * Interface class to implement for custom template matchers
@@ -22,10 +22,6 @@ interface ITemplateMatcher {
          * Default threshold in case it isn't specified in the template
          */
         open var defaultThreshold: Double = 0.9,
-        /**
-         * Filter overlapping match results
-         */
-        open var filterOverlap: Boolean = true
     )
 
     val settings: Settings
