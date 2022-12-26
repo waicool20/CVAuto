@@ -9,6 +9,7 @@ import kotlinx.coroutines.*
 import java.awt.Point
 import java.awt.Rectangle
 import java.awt.image.BufferedImage
+import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
@@ -32,7 +33,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
     val device: T,
     val screen: Int
 ) : Rectangle(x, y, width, height), Comparable<Region<T, R>> {
-    class CaptureIOException(cause: Throwable): Exception(cause)
+    class CaptureIOException(cause: Throwable) : Exception(cause)
 
     /**
      * Represents the results of a find operation run on the device
@@ -55,17 +56,11 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      */
     protected var _lastScreenCapture: Pair<Millis, BufferedImage>? = null
 
-    private var _matcher: ITemplateMatcher? = null
-
     /**
      * Template matcher that will be used for find operations, can be overridden with custom matcher,
      * otherwise [Region.DEFAULT_MATCHER] will be used
      */
-    var matcher: ITemplateMatcher
-        get() = _matcher ?: DEFAULT_MATCHER
-        set(value) {
-            _matcher = value
-        }
+    var matcher = DEFAULT_MATCHER
 
     /**
      * Captures the image of the region
@@ -131,9 +126,9 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * @param x x Offset relative to the x coordinate of this region
      * @param y y Offset relative to the y coordinate of this region
      * @param width Width of subregion
-     * @param height Height of sub region
-     * @return New [Region] representing this sub region
-     * @throws IllegalArgumentException if new sub region is not contained in the current region
+     * @param height Height of sub-region
+     * @return New [Region] representing this sub-region
+     * @throws IllegalArgumentException if new sub-region is not contained in the current region
      */
     fun subRegion(x: Pixels, y: Pixels, width: Pixels, height: Pixels): R {
         val r = mapRectangleToRegion(Rectangle(x, y, width, height))
@@ -189,51 +184,49 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * Inverse of [waitDoesntHave]
      *
      * @param template Template to use for matching
-     * @param timeout Find operation will end after [timeout] millis
-     * @return Region that matched with template or null if find operation timed out
+     * @param timeout Find operation will end after [timeout] millis, timeout is disabled
+     *                if the value is zero or a non-positive value
+     * @return Region that matched with template or null if the find operation timed out
      */
-    suspend fun waitHas(template: ITemplate, timeout: Millis): R? {
-        return withTimeoutOrNull(timeout) {
-            var region: R? = null
-            while (isActive && region == null) {
-                region = findBest(template)?.region
-            }
-            region
+    suspend fun waitHas(template: ITemplate, timeout: Millis = -1): R? {
+        val start = System.currentTimeMillis()
+        var region: R? = null
+        while (coroutineContext.isActive && region == null) {
+            region = findBest(template)?.region
+            if (timeout > 0 && System.currentTimeMillis() - start >= timeout) return null
         }
+        return region
     }
 
     /**
-     * Waits until the given template vanishes off screen.
+     * Waits until the given template vanishes off-screen.
      * This is the suspending version, use [waitDoesntHaveBlocking] if blocking operation is needed.
      * Inverse of [waitHas]
      *
      * @param template Template to use for matching
-     * @param timeout Find operation will end after [timeout] millis
-     * @return Region that matched with template or null if template couldn't be matched to begin with
+     * @param timeout Find operation will end after [timeout] millis, timeout is disabled
+     *                if the value is zero or a non-positive value
      */
-    suspend fun waitDoesntHave(template: ITemplate, timeout: Millis): R? {
-        return withTimeoutOrNull(timeout) {
-            var region: R? = findBest(template)?.region
-            while (isActive && region != null) {
-                region = findBest(template)?.region
-            }
-            region
+    suspend fun waitDoesntHave(template: ITemplate, timeout: Millis = -1) {
+        val start = System.currentTimeMillis()
+        var region: R? = findBest(template)?.region ?: return
+        while (coroutineContext.isActive && region != null) {
+            region = findBest(template)?.region
+            if (timeout > 0 && System.currentTimeMillis() - start >= timeout) return
         }
     }
 
     /**
      * @see waitHas
      */
-    fun waitHasBlocking(template: ITemplate, timeout: Millis): R? = runBlocking {
-        waitHas(template, timeout)
-    }
+    fun waitHasBlocking(template: ITemplate, timeout: Millis = -1): R? =
+        runBlocking(Dispatchers.IO) { waitHas(template, timeout) }
 
     /**
      * @see waitDoesntHave
      */
-    fun waitDoesntHaveBlocking(template: ITemplate, timeout: Millis): R? = runBlocking {
-        waitDoesntHave(template, timeout)
-    }
+    fun waitDoesntHaveBlocking(template: ITemplate, timeout: Millis = -1) =
+        runBlocking(Dispatchers.IO) { waitDoesntHave(template, timeout) }
 
     /**
      * General compare function
@@ -278,7 +271,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * Clicks this region
      * For more complex operations please use the devices respective [IInput]
      *
-     * @param random Whether or not this clicks a random point in this region, defaults true
+     * @param random Whether this clicks a random point in this region, defaults true
      */
     abstract fun click(random: Boolean = true)
 
@@ -286,9 +279,10 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * Clicks this region, while a condition holds true
      * For more complex operations please use the devices respective [IInput]
      *
-     * @param random Whether or not this clicks a random point in this region, defaults true
+     * @param random Whether this clicks a random point in this region, defaults true
      * @param period Delay between each check/click
-     * @param timeout When timeout is reached this function will stop clicking, use -1 to disable timeout
+     * @param timeout When timeout is reached this function will stop clicking, timeout is disabled
+     *                if the value is zero or a non-positive value
      * @param condition Boolean condition function
      * @throws TimeoutCancellationException If timeout is enabled and function times out
      */
@@ -298,18 +292,11 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
         timeout: Millis = -1,
         condition: Region<T, R>.() -> Boolean
     ) {
-        if (timeout > 0) {
-            withTimeout(timeout) {
-                while (isActive && this@Region.condition()) {
-                    click(random)
-                    delay(period)
-                }
-            }
-        } else {
-            while (this.condition()) {
-                click(random)
-                delay(period)
-            }
+        val start = System.currentTimeMillis()
+        while (coroutineContext.isActive && condition()) {
+            click(random)
+            if (timeout > 0 && System.currentTimeMillis() - start >= timeout) return
+            delay(period)
         }
     }
 
@@ -318,7 +305,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * For more complex operations please use the devices respective [IInput]
      *
      * @param template Template to use
-     * @param random Whether or not this clicks a random point in this region, defaults true
+     * @param random Whether this clicks a random point in this region, defaults true
      * @param period Delay between each check/click
      * @param timeout When timeout is reached this function will stop clicking, use -1 to disable timeout
      * @param condition Boolean condition function
@@ -347,6 +334,6 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
 }
 
 /**
- * Provided as a short hand for `Region<*, *>`
+ * Provided as a shorthand for [Region<*, *>]
  */
 typealias AnyRegion = Region<*, *>
