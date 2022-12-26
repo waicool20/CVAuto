@@ -49,20 +49,39 @@ interface ITemplateMatcher {
      */
     fun findBest(template: ITemplate, image: BufferedImage, count: Int): List<FindResult>
 
+    /**
+     * This method removes any overlapping [FindResult], giving priority to the [FindResult]
+     * with the highest score.
+     *
+     * @return List of [FindResult] without overlaps, returned list is not sorted by score
+     */
     fun List<FindResult>.removeOverlaps(): List<FindResult> {
-        val toRemoveIndices = mutableListOf<Int>()
-        for ((i, r1) in this.withIndex()) {
-            for ((j, r2) in this.withIndex()) {
-                if (i == j) continue
-                if (r1.rectangle.intersects(r2.rectangle)) {
-                    if (r1.score < r2.score) {
-                        toRemoveIndices.add(i)
-                    } else {
-                        toRemoveIndices.add(j)
-                    }
-                }
+        val result = mutableListOf<FindResult>()
+        val overlapping = TreeSet<FindResult> { r1, r2 -> r2.score.compareTo(r1.score) }
+
+        // Loop through results sorted by rectangle x coordinate
+        for (current in sortedBy { it.rectangle.x }) {
+            // Look in overlapping for the first rect that intersects with current
+            // The first one that is returned is the highest scoring one
+            // because overlapping is a TreeSet sorted by score
+            val highestScoringOverlap = overlapping.asSequence()
+                .filter { it.rectangle.intersects(current.rectangle) }
+                .firstOrNull()
+
+            if (highestScoringOverlap == null) {
+                // If it's null, then that means this rectangle is the current highest scoring
+                // rectangle, so we add it to the result and overlapping collection
+                overlapping.add(current)
+                result.add(current)
+            } else if (current.score > highestScoringOverlap.score) {
+                // If it's not null and the current score is higher than the existing rectangle
+                // then we give priority to the current one and remove the previous high score holder
+                overlapping.remove(highestScoringOverlap)
+                result.remove(highestScoringOverlap)
+                overlapping.add(current)
+                result.add(current)
             }
         }
-        return filterIndexed { i, _ -> !toRemoveIndices.contains(i) }
+        return result
     }
 }
