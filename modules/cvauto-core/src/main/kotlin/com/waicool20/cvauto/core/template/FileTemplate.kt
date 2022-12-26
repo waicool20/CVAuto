@@ -47,3 +47,5 @@ class FileTemplate(
         return path.hashCode()
     }
 }
+
+typealias FT = FileTemplate

@@ -21,3 +21,5 @@ class ImageTemplate(
         return image.hashCode()
     }
 }
+
+typealias IT = ImageTemplate

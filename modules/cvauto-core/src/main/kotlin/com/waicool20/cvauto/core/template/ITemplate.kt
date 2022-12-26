@@ -8,8 +8,8 @@ import java.net.URI
  */
 interface ITemplate {
     /**
-     * URI of the source for the image that this template is based on, since this is an URI
-     * it can represent anything from a local file to a url of image on the internet.
+     * URI of the source for the image that this template is based on, since this is a URI
+     * it can represent anything from a local file to an url of image on the internet.
      */
     val source: URI
 
