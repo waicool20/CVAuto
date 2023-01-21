@@ -1,7 +1,5 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
-    kotlin("jvm") version "1.7.20"
+    kotlin("jvm") version "1.8.0"
 }
 
 allprojects {
@@ -14,18 +12,12 @@ allprojects {
         mavenCentral()
     }
 
-    tasks.withType<KotlinCompile> {
-        kotlinOptions {
-            jvmTarget = JavaVersion.VERSION_1_8.toString()
-        }
-    }
-
     dependencies {
         val versions = object {
             val KotlinCoroutines = "1.6.4"
         }
 
-        implementation(kotlin("stdlib-jdk8"))
+        implementation(kotlin("stdlib"))
         implementation(kotlin("reflect"))
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${versions.KotlinCoroutines}")
 
