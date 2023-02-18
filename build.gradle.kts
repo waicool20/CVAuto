@@ -7,7 +7,7 @@ plugins {
 allprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
-    group = "com.waicool20"
+    group = "com.waicool20.cvauto"
     version = "1.0-SNAPSHOT"
 
     java {
