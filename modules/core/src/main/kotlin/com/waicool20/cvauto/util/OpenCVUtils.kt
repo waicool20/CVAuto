@@ -26,8 +26,26 @@ import java.awt.image.BufferedImage
 import java.awt.image.DataBufferByte
 import kotlin.math.abs
 
+
+/**
+ * Converts a [BufferedImage] to [Mat], the [BufferedImage] type to [CvType] mapping is listed as below:
+ *
+ * - [BufferedImage.TYPE_BYTE_GRAY] -> [CvType.CV_8UC1]
+ * - [BufferedImage.TYPE_3BYTE_BGR] -> [CvType.CV_8UC3]
+ * - [BufferedImage.TYPE_4BYTE_ABGR] -> [CvType.CV_8UC4]
+ *
+ * Other types are not supported
+ *
+ * @see [toBufferedImage]
+ */
 fun BufferedImage.toMat(): Mat {
-    val mat = Mat(height, width, if (colorModel.hasAlpha()) CvType.CV_8UC4 else CvType.CV_8UC3)
+    val matType = when (type) {
+        BufferedImage.TYPE_BYTE_GRAY -> CvType.CV_8UC1
+        BufferedImage.TYPE_3BYTE_BGR -> CvType.CV_8UC3
+        BufferedImage.TYPE_4BYTE_ABGR -> CvType.CV_8UC4
+        else -> error("Unsupported type: $type")
+    }
+    val mat = Mat(height, width, matType)
     val data = (raster.dataBuffer as DataBufferByte).data
     if (raster.parent == null) {
         mat.put(intArrayOf(0, 0), data)
@@ -43,6 +61,17 @@ fun BufferedImage.toMat(): Mat {
     return mat
 }
 
+/**
+ * Converts a [Mat] to [BufferedImage], the [CvType] to [BufferedImage] type mapping is listed as below:
+ *
+ * - [CvType.CV_8UC1] -> [BufferedImage.TYPE_BYTE_GRAY]
+ * - [CvType.CV_8UC3] -> [BufferedImage.TYPE_3BYTE_BGR]
+ * - [CvType.CV_8UC4] -> [BufferedImage.TYPE_4BYTE_ABGR]
+ *
+ * Other types are not supported
+ *
+ * @see [toMat]
+ */
 fun Mat.toBufferedImage(): BufferedImage {
     val type = when (val c = channels()) {
         1 -> BufferedImage.TYPE_BYTE_GRAY
@@ -56,6 +85,11 @@ fun Mat.toBufferedImage(): BufferedImage {
     return img
 }
 
+/**
+ * Remove the given channels from a [Mat]
+ *
+ * @param channelIndex An array of channel index, these will be removed from the [Mat]
+ */
 fun Mat.removeChannels(vararg channelIndex: Int): Mat {
     val dst = mutableListOf<Mat>()
     val tmp = mutableListOf<Mat>()
