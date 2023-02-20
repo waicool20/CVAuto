@@ -317,7 +317,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
         condition: Region<T, R>.() -> Boolean
     ) {
         val start = System.currentTimeMillis()
-        while (coroutineContext.isActive && condition()) {
+        while (coroutineContext.isActive && this.condition()) {
             click(random)
             if (timeout > 0 && System.currentTimeMillis() - start >= timeout) return
             delay(period)
