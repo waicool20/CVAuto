@@ -3,7 +3,7 @@ package com.waicool20.cvauto.android.input
 import com.waicool20.cvauto.android.AndroidDevice
 import com.waicool20.cvauto.core.Millis
 import com.waicool20.cvauto.core.input.ITouchInterface
-import com.waicool20.cvauto.util.Animations
+import com.waicool20.cvauto.core.util.Animations
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*

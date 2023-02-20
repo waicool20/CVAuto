@@ -17,11 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.waicool20.cvauto.util.matching
+package com.waicool20.cvauto.core.util.matching
 
 import com.waicool20.cvauto.core.template.ITemplate
-import com.waicool20.cvauto.util.at
-import com.waicool20.cvauto.util.toMat
+import com.waicool20.cvauto.core.util.at
+import com.waicool20.cvauto.core.util.toMat
 import org.opencv.core.*
 import org.opencv.imgproc.Imgproc
 import java.awt.Rectangle

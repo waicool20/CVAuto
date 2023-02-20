@@ -2,8 +2,6 @@ package com.waicool20.cvauto.desktop
 
 import com.waicool20.cvauto.core.Pixels
 import com.waicool20.cvauto.core.Region
-import com.waicool20.cvauto.util.matching.ITemplateMatcher
-import java.awt.Rectangle
 import java.awt.Robot
 import java.awt.image.BufferedImage
 

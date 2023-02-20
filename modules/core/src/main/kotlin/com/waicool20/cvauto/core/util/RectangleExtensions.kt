@@ -1,4 +1,4 @@
-package com.waicool20.cvauto.util
+package com.waicool20.cvauto.core.util
 
 import java.awt.Rectangle
 

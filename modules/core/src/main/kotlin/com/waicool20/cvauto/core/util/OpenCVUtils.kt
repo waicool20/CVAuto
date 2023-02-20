@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.waicool20.cvauto.util
+package com.waicool20.cvauto.core.util
 
 import org.opencv.core.Core
 import org.opencv.core.CvType
