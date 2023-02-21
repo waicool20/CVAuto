@@ -22,9 +22,8 @@
  * THE SOFTWARE.
  */
 
-package com.waicool20.cvauto.core.util.matching
+package com.waicool20.cvauto.core.template
 
-import com.waicool20.cvauto.core.template.ITemplate
 import java.awt.Rectangle
 import java.awt.image.BufferedImage
 import java.util.*

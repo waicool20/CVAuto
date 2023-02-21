@@ -26,9 +26,9 @@ package com.waicool20.cvauto.core
 
 import com.waicool20.cvauto.core.input.IInput
 import com.waicool20.cvauto.core.template.ITemplate
+import com.waicool20.cvauto.core.template.ITemplateMatcher
+import com.waicool20.cvauto.core.template.OpenCvTemplateMatcher
 import com.waicool20.cvauto.core.util.area
-import com.waicool20.cvauto.core.util.matching.ITemplateMatcher
-import com.waicool20.cvauto.core.util.matching.OpenCvTemplateMatcher
 import kotlinx.coroutines.*
 import java.awt.Point
 import java.awt.Rectangle
