@@ -132,29 +132,16 @@ class AndroidTouchInterface private constructor(
         }
 
     private fun transformTouch(touch: ITouchInterface.Touch): ITouchInterface.Touch {
-        var xCoord = touch.cursorX
-        var yCoord = touch.cursorY
-        if (device.properties.displayWidth > device.properties.displayHeight) {
-            when (device.orientation) {
-                0, 2 -> {
-                    xCoord = touch.cursorX
-                    yCoord = touch.cursorY
-                }
-                1, 3 -> {
-                    xCoord = device.properties.displayWidth - touch.cursorX
-                    yCoord = device.properties.displayHeight - touch.cursorY
-                }
+        val xCoord: Int
+        val yCoord: Int
+        when (device.orientation) {
+            AndroidDevice.Orientation.NORMAL -> {
+                xCoord = touch.cursorX
+                yCoord = touch.cursorY
             }
-        } else {
-            when (device.orientation) {
-                0, 2 -> {
-                    xCoord = touch.cursorY
-                    yCoord = device.properties.displayHeight - touch.cursorX
-                }
-                1, 3 -> {
-                    xCoord = device.properties.displayWidth - touch.cursorY
-                    yCoord = touch.cursorX
-                }
+            AndroidDevice.Orientation.ROTATED -> {
+                xCoord = touch.cursorY
+                yCoord = touch.cursorX
             }
         }
         return touch.copy(cursorX = xCoord, cursorY = yCoord)

@@ -55,6 +55,10 @@ class AndroidDevice internal constructor(val serial: String) :
         val displayHeight: Pixels
     )
 
+    enum class Orientation {
+        NORMAL, ROTATED
+    }
+
     /**
      * Properties of this android device
      */
@@ -63,9 +67,17 @@ class AndroidDevice internal constructor(val serial: String) :
     /**
      * Orientation of the device
      */
-    val orientation: Int
-        get() = execute("dumpsys input | grep SurfaceOrientation").readText().takeLast(1)
-            .toIntOrNull() ?: 0
+    val orientation: Orientation
+        get() {
+            val txt = execute("dumpsys window  | grep init=").readText()
+            val (w0, h0, w1, h1) = Regex("init=(\\d+)x(\\d+) \\d+?dpi cur=(\\d+)x(\\d+)")
+                .find(txt)?.destructured ?: error("Could not read orientation from device")
+            return when {
+                w0 == w1 && h0 == h1 -> Orientation.NORMAL
+                w0 == h1 && h0 == w1 -> Orientation.ROTATED
+                else -> error("Could not determine orientation from device $serial")
+            }
+        }
 
     init {
         val props = execute("getprop").readLines().mapNotNull { str ->

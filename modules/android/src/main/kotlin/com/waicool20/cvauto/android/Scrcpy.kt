@@ -41,7 +41,7 @@ class Scrcpy private constructor(
     val control: Socket
 ) : Closeable {
     companion object {
-        val VERSION = "1.23c"
+        val VERSION = "1.25"
         val PATH: Path = CVAutoAndroid.HOME_DIR.resolve("scrcpy-server")
 
         internal fun getForDevice(device: AndroidDevice): Scrcpy {
@@ -56,7 +56,7 @@ class Scrcpy private constructor(
             val process = ProcessBuilder(
                 ADB.binPath.absolutePathString(), "-s", device.serial, "shell",
                 "CLASSPATH=/data/local/tmp/scrcpy-server.jar app_process / com.genymobile.scrcpy.Server",
-                "1.23", "log_level=INFO", "tunnel_forward=true"
+                VERSION, "log_level=INFO", "tunnel_forward=true"
             ).inheritIO().also {
                 it.environment()["ADB"] = ADB.binPath.absolutePathString()
             }.start()
