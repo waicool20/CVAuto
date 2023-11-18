@@ -1,8 +1,6 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
-    kotlin("jvm") version "1.8.0"
-    id("org.jetbrains.dokka") version "1.7.20"
+    kotlin("jvm") version "1.9.20"
+    id("org.jetbrains.dokka") version "1.9.10"
 }
 
 allprojects {
@@ -12,9 +10,8 @@ allprojects {
     group = "com.waicool20.cvauto"
     version = "1.0-SNAPSHOT"
 
-    java {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+    kotlin {
+        jvmToolchain(11)
     }
 
     repositories {
@@ -23,7 +20,7 @@ allprojects {
 
     dependencies {
         val versions = object {
-            val KotlinCoroutines = "1.6.4"
+            val KotlinCoroutines = "1.7.3"
         }
 
         implementation(kotlin("stdlib"))
@@ -34,18 +31,12 @@ allprojects {
         testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
         testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.0")
     }
-
-    tasks {
-        withType<KotlinCompile>().configureEach {
-            compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
-        }
-    }
 }
 
 task<Zip>("docs") {
     dependsOn("dokkaHtmlCollector")
-    destinationDirectory.set(file("$buildDir/dokka"))
-    from(file("$buildDir/dokka/htmlCollector"))
+    destinationDirectory.set(file("$${layout.buildDirectory}/dokka"))
+    from(file("${layout.buildDirectory}/dokka/htmlCollector"))
     into("docs")
     archiveFileName.set("docs.zip")
 }
