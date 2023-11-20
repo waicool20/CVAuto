@@ -30,9 +30,9 @@ import com.waicool20.cvauto.core.template.ITemplateMatcher
 import com.waicool20.cvauto.core.template.OpenCvTemplateMatcher
 import com.waicool20.cvauto.core.util.area
 import kotlinx.coroutines.*
+import java.awt.Color
 import java.awt.Point
 import java.awt.Rectangle
-import java.awt.image.BufferedImage
 import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -49,14 +49,15 @@ import kotlin.random.Random
  * @property device Device that the region belongs to
  * @property screen Screen index
  */
-abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
+abstract class Region<D : IDevice<D, E, R>, E : IDisplay<D, E, R>, R : Region<D, E, R>>(
     x: Pixels,
     y: Pixels,
     width: Pixels,
     height: Pixels,
-    val device: T,
-    val screen: Int
-) : Rectangle(x, y, width, height), Comparable<Region<T, R>> {
+    val device: D,
+    val display: E,
+    protected var frozenCapture: Capture? = null
+) : Rectangle(x, y, width, height), Comparable<Region<D, E, R>> {
     class CaptureIOException(cause: Throwable) : Exception(cause)
 
     /**
@@ -65,33 +66,35 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * @param region The region containing the matched location
      * @param score The similarity score given by the matcher
      */
-    data class RegionFindResult<T : IDevice<T, R>, R : Region<T, R>>(
+    data class RegionFindResult<D : IDevice<D, E, R>, E : IDisplay<D, E, R>, R : Region<D, E, R>>(
         val region: R,
         val score: kotlin.Double
     )
 
     companion object {
         val DEFAULT_MATCHER = OpenCvTemplateMatcher()
-        var FIND_REFRESH: Millis = 32
     }
-
-    /**
-     * Last screen capture, should only be mutated by top-level screen regions
-     */
-    protected var _lastScreenCapture: Pair<Millis, BufferedImage>? = null
 
     /**
      * Template matcher that will be used for find operations, can be overridden with custom matcher,
      * otherwise [Region.DEFAULT_MATCHER] will be used
      */
-    var matcher = DEFAULT_MATCHER
+    var matcher: ITemplateMatcher = DEFAULT_MATCHER
+
+    /**
+     * Checks if this region is frozen, a frozen region will always return the same capture when
+     * it was frozen
+     */
+    val frozen: Boolean
+        get() = this.frozenCapture != null
 
     /**
      * Captures the image of the region
-     *
-     * @return [BufferedImage] representation of the captured image
      */
-    abstract fun capture(): BufferedImage
+    fun capture(): Capture {
+        val c = frozenCapture ?: display.capture()
+        return c.copy(img = c.img.getSubimage(x, y, width, height))
+    }
 
     /**
      * Maps a rectangle on to this region
@@ -100,7 +103,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * @return New [Region] with mapped rectangle
      */
     fun mapRectangleToRegion(rect: Rectangle): R {
-        return copy(rect.x + x, rect.y + y, rect.width, rect.height, device, screen)
+        return copy(rect.x + x, rect.y + y, rect.width, rect.height, device, display)
     }
 
     /**
@@ -109,39 +112,15 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * @param result [ITemplateMatcher.FindResult] to map
      * @return New [Region] with mapped result
      */
-    fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<T, R> {
+    fun mapFindResultToRegion(result: ITemplateMatcher.FindResult): RegionFindResult<D, E, R> {
         return RegionFindResult(mapRectangleToRegion(result.rectangle), result.score)
     }
 
     /**
-     * Gets the last screen capture of the region
-     *
-     * @return null if no capture was done before
+     * Checks if this region is the root region
      */
-    fun getLastScreenCapture(): BufferedImage? {
-        val screen = device.screens.getOrNull(screen)
-        return if (this == screen) {
-            _lastScreenCapture?.second
-        } else {
-            screen?.getLastScreenCapture()
-        }
-    }
-
-    /**
-     * Gets the last capture of this region
-     *
-     * @return null if not capture was done before
-     */
-    fun getLastCapture(): BufferedImage? {
-        return getLastScreenCapture()?.getSubimage(x, y, width, height)
-    }
-
-    /**
-     * Checks if this region is the device screen or a copy of it
-     */
-    fun isDeviceScreen(): Boolean {
-        val parent = device.screens[screen]
-        return this == parent || (parent.screen == screen && contains(parent))
+    fun isRootRegion(): Boolean {
+        return this == display.region || contains(display.region)
     }
 
     /**
@@ -166,7 +145,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * @param template Template to use for matching
      * @return Results of the find operation
      */
-    fun findBest(template: ITemplate): RegionFindResult<T, R>? {
+    fun findBest(template: ITemplate): RegionFindResult<D, E, R>? {
         return findBest(template, 1).firstOrNull()
     }
 
@@ -177,11 +156,8 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * @param count Max number of matches to find
      * @return Results of the find operation
      */
-    fun findBest(template: ITemplate, count: Int): List<RegionFindResult<T, R>> {
-        val image = _lastScreenCapture?.let { (lastTime, img) ->
-            if (System.currentTimeMillis() - lastTime > FIND_REFRESH) capture() else img
-        } ?: capture()
-        return matcher.findBest(template, image, count).map(::mapFindResultToRegion)
+    fun findBest(template: ITemplate, count: Int): List<RegionFindResult<D, E, R>> {
+        return matcher.findBest(template, capture().img, count).map(::mapFindResultToRegion)
     }
 
     /**
@@ -253,6 +229,13 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
         runBlocking(Dispatchers.IO) { waitDoesntHave(template, timeout) }
 
     /**
+     * Pick color from the given coordinates
+     */
+    fun pickColor(x: Pixels, y: Pixels): Color {
+        return Color(capture().img.getRGB(x, y))
+    }
+
+    /**
      * General compare function
      *
      * @param other Other region to compare with
@@ -260,7 +243,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
      * 0 if area is the same;
      * <0 if this region is smaller than the other
      */
-    override fun compareTo(other: Region<T, R>): Int {
+    override fun compareTo(other: Region<D, E, R>): Int {
         return area - other.area
     }
 
@@ -280,14 +263,25 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
         y: Pixels = this.y,
         width: Pixels = this.width,
         height: Pixels = this.height,
-        device: T = this.device,
-        screen: Int = this.screen
+        device: D = this.device,
+        display: E = this.display
     ): R
 
     @Deprecated("Use copy instead", ReplaceWith("copy()"))
     final override fun clone(): Any = error("Use Region<T, R>.copy()")
 
-    fun asCachedRegion(): CachedRegion<T, R> = CachedRegion(this)
+    /**
+     * Freezes this region, which will cache the current capture of the region to be used for future
+     * use
+     */
+    fun freeze(): R {
+        if (this === display.region) {
+            return this.copy().freeze()
+        }
+        this.frozenCapture = display.capture()
+        @Suppress("UNCHECKED_CAST")
+        return this as R
+    }
 
     //<editor-fold desc="Quick input shortcuts">
 
@@ -314,7 +308,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
         random: Boolean = true,
         period: Millis = 100,
         timeout: Millis = -1,
-        condition: Region<T, R>.() -> Boolean
+        condition: Region<D, E, R>.() -> Boolean
     ) {
         val start = System.currentTimeMillis()
         while (coroutineContext.isActive && this.condition()) {
@@ -340,7 +334,7 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
         random: Boolean = true,
         period: Millis = 100,
         timeout: Millis = -1,
-        condition: Region<T, R>.(ITemplate) -> Boolean
+        condition: Region<D, E, R>.(ITemplate) -> Boolean
     ) {
         val r = findBest(template)?.region ?: return
         r.clickWhile(random, period, timeout) { condition(this, template) }
@@ -360,4 +354,4 @@ abstract class Region<T : IDevice<T, R>, R : Region<T, R>>(
 /**
  * Provided as a shorthand for [Region<*, *>]
  */
-typealias AnyRegion = Region<*, *>
+typealias AnyRegion = Region<*, *, *>

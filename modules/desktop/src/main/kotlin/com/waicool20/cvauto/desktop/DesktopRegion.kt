@@ -24,6 +24,7 @@
 
 package com.waicool20.cvauto.desktop
 
+import com.waicool20.cvauto.core.Capture
 import com.waicool20.cvauto.core.Pixels
 import com.waicool20.cvauto.core.Region
 import java.awt.Robot
@@ -38,20 +39,9 @@ class DesktopRegion(
     width: Pixels,
     height: Pixels,
     device: Desktop,
-    screen: Int
-) : Region<Desktop, DesktopRegion>(x, y, width, height, device, screen) {
-    companion object {
-        private val robot by lazy { Robot() }
-    }
-
-    override fun capture(): BufferedImage {
-        val capture = robot.createScreenCapture(this).getSubimage(x, y, width, height)
-        if (device.screens.contains(this)) {
-            _lastScreenCapture = System.currentTimeMillis() to capture
-        }
-        return capture
-    }
-
+    display: DesktopDisplay,
+    frozenCapture: Capture? = null
+) : Region<Desktop, DesktopDisplay, DesktopRegion>(x, y, width, height, device, display, frozenCapture) {
     override fun click(random: Boolean) {
         throw UnsupportedOperationException("Not Implemented") // TODO Implement this function
     }
@@ -66,8 +56,8 @@ class DesktopRegion(
         width: Pixels,
         height: Pixels,
         device: Desktop,
-        screen: Int
+        display: DesktopDisplay
     ): DesktopRegion {
-        return DesktopRegion(x, y, width, height, device, screen)
+        return DesktopRegion(x, y, width, height, device, display, this.frozenCapture)
     }
 }

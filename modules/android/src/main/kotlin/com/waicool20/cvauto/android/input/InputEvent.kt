@@ -53,6 +53,6 @@ enum class InputEvent(val code: Long) {
          * @param code The code to look for
          * @return [InputEvent]
          */
-        operator fun get(code: Long) = values().find { it.code == code }
+        operator fun get(code: Long) = entries.find { it.code == code }
     }
 }

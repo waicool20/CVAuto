@@ -52,7 +52,7 @@ class AndroidTouchInterface private constructor(
     }
 
     private val _touches = MutableList(10) { ITouchInterface.Touch(it) }
-    private val writeBuffer = ByteArray(28)
+    private val writeBuffer = ByteArray(32)
 
     override val settings = AndroidTouchInterfaceSettings()
 
@@ -159,6 +159,8 @@ class AndroidTouchInterface private constructor(
         val h = device.properties.displayHeight
 
         if (LOG_INPUT_EVENTS) println("$event $touch $pressure $button")
+
+        // see https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/ControlMessageReader.java#L135
         ByteBuffer.wrap(writeBuffer)
             .order(ByteOrder.BIG_ENDIAN)
             .put(ControlMessage.TYPE_INJECT_TOUCH_EVENT.toByte())
@@ -169,6 +171,7 @@ class AndroidTouchInterface private constructor(
             .putShort(w.toShort())
             .putShort(h.toShort())
             .putShort(pressure.toShort())
+            .putInt(button.code.toInt())
             .putInt(button.code.toInt())
         try {
             device.scrcpy.control.getOutputStream().apply {

@@ -575,7 +575,7 @@ enum class Key(val code: Long) {
         /**
          * Returns the corresponding key code needed to type this character
          *
-         * @param name Name of character, eg. A, B, COMMA, ALT
+         * @param name Name of character, e.g. A, B, COMMA, ALT
          * @return [Key]
          */
         fun findByName(name: String) = try {
@@ -590,13 +590,13 @@ enum class Key(val code: Long) {
          * @param code The code to look for
          * @return [Key]
          */
-        fun findByCode(code: Long) = values().find { it.code == code }
+        fun findByCode(code: Long) = entries.find { it.code == code }
 
         /**
          * Gets the corresponding [Key] from the type of [java.awt.event.KeyEvent] given.
          *
          * @param event The [java.awt.event.KeyEvent]
-         * @return Corresponding [Key], if no mapping was found then [Key_unknown] is returned
+         * @return Corresponding [Key], if no mapping was found then [KEY_UNKNOWN] is returned
          */
         fun fromAwtKeyEvent(event: Int): Key = awtMappings.getOrDefault(event, KEY_UNKNOWN)
     }

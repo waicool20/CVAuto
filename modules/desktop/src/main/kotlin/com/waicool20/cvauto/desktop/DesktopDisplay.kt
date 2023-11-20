@@ -22,16 +22,34 @@
  * THE SOFTWARE.
  */
 
-package com.waicool20.cvauto.core
+package com.waicool20.cvauto.desktop
 
-import com.waicool20.cvauto.core.input.IInput
+import com.waicool20.cvauto.core.Capture
+import com.waicool20.cvauto.core.IDisplay
+import com.waicool20.cvauto.core.Pixels
+import java.awt.GraphicsDevice
+import java.awt.image.BufferedImage
 
-/**
- * Cached device, this variant of device is just used to wrap the device of a [CachedRegion],
- * getting the list of screens will return an empty list.
- */
-class CachedDevice<T : IDevice<T, R>, R : Region<T, R>>(val device: IDevice<T, R>) :
-    IDevice<CachedDevice<T, R>, CachedRegion<T, R>> {
-    override val input: IInput get() = device.input
-    override val screens: List<CachedRegion<T, R>> = emptyList()
+class DesktopDisplay(
+    override val device: Desktop,
+    override val index: Int,
+    private val graphicsDevice: GraphicsDevice
+) : IDisplay<Desktop, DesktopDisplay, DesktopRegion> {
+    override
+    val region = DesktopRegion(0, 0, width, height, device, this)
+    override val width: Pixels
+        get() = graphicsDevice.defaultConfiguration.bounds.width
+    override val height: Pixels
+        get() = graphicsDevice.defaultConfiguration.bounds.height
+    override var lastCapture: Capture =
+        Capture(0, BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR))
+        private set
+
+    override fun capture(): Capture {
+        lastCapture = Capture(
+            System.currentTimeMillis(),
+            device.robot.createScreenCapture(graphicsDevice.defaultConfiguration.bounds)
+        )
+        return lastCapture
+    }
 }

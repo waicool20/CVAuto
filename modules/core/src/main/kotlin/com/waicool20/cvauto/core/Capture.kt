@@ -22,22 +22,11 @@
  * THE SOFTWARE.
  */
 
-package com.waicool20.cvauto.desktop
+package com.waicool20.cvauto.core
 
-import com.waicool20.cvauto.core.IDevice
-import com.waicool20.cvauto.core.input.IInput
-import java.awt.GraphicsEnvironment
-import java.awt.Robot
+import java.awt.image.BufferedImage
 
-/**
- * Singleton [Desktop] device object, represents the local desktop environment
- */
-object Desktop : IDevice<Desktop, DesktopDisplay, DesktopRegion> {
-    val robot by lazy { Robot() }
-    override val input: IInput get() = TODO()
-    override val displays: List<DesktopDisplay>
-        get() = GraphicsEnvironment.getLocalGraphicsEnvironment().run {
-            screenDevices.sortedByDescending { it == defaultScreenDevice }
-                .mapIndexed { i, device -> DesktopDisplay(this@Desktop, i, device) }
-        }
-}
+data class Capture(
+    val timestamp: Millis,
+    val img: BufferedImage
+)

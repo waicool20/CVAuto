@@ -29,20 +29,20 @@ import com.waicool20.cvauto.core.input.IInput
 /**
  * Represents a Device with input and a set of screens
  */
-interface IDevice<T : IDevice<T, R>, R : Region<T, R>> {
+interface IDevice<D : IDevice<D, E, R>, E : IDisplay<D, E, R>, R : Region<D, E, R>>  {
     /**
      * The inputs that belong to this screen
      */
     val input: IInput
 
     /**
-     * The list of screens that belong to this device, the first screen in the list
-     * is the main screen.
+     * The list of displays that belong to this device, the first display in the list
+     * is the main display.
      */
-    val screens: List<Region<T, R>>
+    val displays: List<IDisplay<D, E, R>>
 }
 
 /**
- * Provided as a short hand for `IDevice<*, *>`
+ * Provided as a shorthand for `IDevice<*, *>`
  */
-typealias AnyDevice = IDevice<*, *>
+typealias AnyDevice = IDevice<*, *, *>

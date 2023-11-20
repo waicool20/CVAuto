@@ -44,3 +44,15 @@ fun BufferedImage.createCompatibleCopy(
         null
     )
 }
+
+/**
+ * Create a deep clone of a BufferedImage
+ */
+fun BufferedImage.deepClone(): BufferedImage {
+    return BufferedImage(
+        this.colorModel,
+        this.copyData(null),
+        this.colorModel.isAlphaPremultiplied,
+        null
+    )
+}

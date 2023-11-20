@@ -38,10 +38,11 @@ class Scrcpy private constructor(
     val port: Int,
     val process: Process,
     val video: Socket,
+    val audio: Socket,
     val control: Socket
 ) : Closeable {
     companion object {
-        val VERSION = "1.25"
+        val VERSION = "v2.2"
         val PATH: Path = CVAutoAndroid.HOME_DIR.resolve("scrcpy-server")
 
         internal fun getForDevice(device: AndroidDevice): Scrcpy {
@@ -63,23 +64,24 @@ class Scrcpy private constructor(
 
             Thread.sleep(1000) // Needed otherwise socket sometimes doesnt connect properly
 
-            val vs = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
-            val vsi = vs.getInputStream()
-            val cs = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+            val videoSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+            val vsi = videoSocket.getInputStream()
+            val audioSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+            val asi = audioSocket.getInputStream()
+            val controlSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
 
             // Read device information from video socket and print it
-            if (vsi.read() != 0) error("Could not connect to scrcpy server")
-            val readBuffer = ByteArray(68)
+            if (vsi.read() != 0) error("Could not connect to scrcpy video socket")
+            if (asi.read() != 0) error("Could not connect to scrcpy audio socket")
+            val readBuffer = ByteArray(64)
             vsi.read(readBuffer)
             val deviceNameIndex =
                 readBuffer.indexOfFirst { it == 0.toByte() }.takeIf { it != -1 } ?: 64
             val deviceName = readBuffer.sliceArray(0 until deviceNameIndex).decodeToString()
-            val width = readBuffer.sliceArray(64..65).let { it[0].toInt() shl 8 or it[1].toInt() }
-            val height = readBuffer.sliceArray(66..67).let { it[0].toInt() shl 8 or it[1].toInt() }
 
-            println("Connected to $deviceName, width: $width, height: $height")
+            println("Connected to $deviceName")
 
-            val scrcpy = Scrcpy(port, process, vs, cs)
+            val scrcpy = Scrcpy(port, process, videoSocket, audioSocket, controlSocket)
             // Make sure adb stuff gets cleaned up during shutdown
             Runtime.getRuntime().addShutdownHook(Thread { scrcpy.close() })
             return scrcpy
@@ -87,7 +89,7 @@ class Scrcpy private constructor(
 
         private fun extractServer() {
             val inStream = AndroidInput::class.java
-                .getResourceAsStream("/com/waicool20/cvauto/android/scrcpy-server-v$VERSION")!!
+                .getResourceAsStream("/com/waicool20/cvauto/android/scrcpy-server-$VERSION")!!
             val outStream = PATH.outputStream()
             inStream.copyTo(outStream)
             inStream.close()
@@ -95,12 +97,17 @@ class Scrcpy private constructor(
         }
     }
 
-    var isClosed = false
-        private set
+    private var _isClosed = false
+
+    val isClosed: Boolean
+        get() {
+            return _isClosed || video.isClosed || audio.isClosed || control.isClosed
+        }
 
     override fun close() {
-        isClosed = true
+        _isClosed = true
         control.close()
+        audio.close()
         video.close()
         process.destroy()
         ADB.execute("forward", "--remove", "tcp:$port")

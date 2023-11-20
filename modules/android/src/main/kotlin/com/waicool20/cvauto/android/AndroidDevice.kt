@@ -38,7 +38,7 @@ import kotlin.io.path.outputStream
  * Represents an android device
  */
 class AndroidDevice internal constructor(val serial: String) :
-    IDevice<AndroidDevice, AndroidRegion> {
+    IDevice<AndroidDevice, AndroidDisplay, AndroidRegion> {
     class UnexpectedDisconnectException(device: AndroidDevice) :
         Exception("Device ${device.serial} disconnected unexpectedly")
 
@@ -134,8 +134,7 @@ class AndroidDevice internal constructor(val serial: String) :
     var compressionMode = CompressionMode.LZ4
 
     override val input = AndroidInput(this)
-    override val screens: List<AndroidRegion> =
-        listOf(AndroidRegion(0, 0, properties.displayWidth, properties.displayHeight, this, 0))
+    override val displays: List<AndroidDisplay>
 
     init {
         // Push lz4 binary
@@ -158,6 +157,18 @@ class AndroidDevice internal constructor(val serial: String) :
             // Fallback to None
             compressionMode = CompressionMode.NONE
         }
+
+        val displayRegex = Regex(".*DisplayDeviceInfo.*uniqueId=\".*:(\\d)\", (\\d+) x (\\d+).*")
+        displays = execute("dumpsys display").readLines()
+            .mapNotNull { displayRegex.matchEntire(it)?.destructured }
+            .map { (index, width, height) ->
+                AndroidDisplay(
+                    this,
+                    width.toInt(),
+                    height.toInt(),
+                    index.toInt()
+                )
+            }
     }
 
     /**

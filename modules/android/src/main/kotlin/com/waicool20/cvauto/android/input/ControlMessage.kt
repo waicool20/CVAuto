@@ -31,9 +31,10 @@ object ControlMessage {
     const val TYPE_INJECT_SCROLL_EVENT = 3
     const val TYPE_BACK_OR_SCREEN_ON = 4
     const val TYPE_EXPAND_NOTIFICATION_PANEL = 5
-    const val TYPE_COLLAPSE_NOTIFICATION_PANEL = 6
-    const val TYPE_GET_CLIPBOARD = 7
-    const val TYPE_SET_CLIPBOARD = 8
-    const val TYPE_SET_SCREEN_POWER_MODE = 9
-    const val TYPE_ROTATE_DEVICE = 10
+    const val TYPE_EXPAND_SETTINGS_PANEL = 6
+    const val TYPE_COLLAPSE_PANELS = 7
+    const val TYPE_GET_CLIPBOARD = 8
+    const val TYPE_SET_CLIPBOARD = 9
+    const val TYPE_SET_SCREEN_POWER_MODE = 10
+    const val TYPE_ROTATE_DEVICE = 11
 }
