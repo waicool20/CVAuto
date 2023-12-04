@@ -35,8 +35,8 @@ allprojects {
 
 task<Zip>("docs") {
     dependsOn("dokkaHtmlCollector")
-    destinationDirectory.set(file("$${layout.buildDirectory}/dokka"))
-    from(file("${layout.buildDirectory}/dokka/htmlCollector"))
+    destinationDirectory.set(file("$${layout.buildDirectory.asFile.get()}/dokka"))
+    from(file("${layout.buildDirectory.asFile.get()}/dokka/htmlCollector"))
     into("docs")
     archiveFileName.set("docs.zip")
 }
