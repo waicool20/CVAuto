@@ -41,10 +41,7 @@ import java.net.SocketException
 import java.nio.ByteBuffer
 import java.nio.channels.Channels
 import java.nio.channels.ReadableByteChannel
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
+import java.util.concurrent.*
 import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.GZIPInputStream
 import kotlin.concurrent.thread
@@ -75,18 +72,16 @@ class AndroidDisplay(
 
     override fun capture(): Capture {
         _stats.captureRequests++
-        if (System.currentTimeMillis() - lastCapture.timestamp <= 66) {
+        if (System.currentTimeMillis() - lastCapture.timestamp <= 33) {
             _stats.cacheHits++
             return lastCapture.copy(img = lastCapture.img.deepClone());
         }
         return executorLock.withLock {
             val future = executor.submit<Capture> {
-                val img = when (device.captureMethod) {
+                return@submit when (device.captureMethod) {
                     AndroidDevice.CaptureMethod.SCREENCAP -> doNormalCapture()
                     AndroidDevice.CaptureMethod.SCRCPY -> doScrcpyCapture()
                 }
-                lastCapture = Capture(System.currentTimeMillis(), img)
-                return@submit lastCapture
             }
             try {
                 future.get(10_000, TimeUnit.MILLISECONDS)
@@ -101,7 +96,7 @@ class AndroidDisplay(
         }
     }
 
-    private fun doNormalCapture(): BufferedImage {
+    private fun doNormalCapture(): Capture {
         val throwables = mutableListOf<Throwable>()
         for (i in 0 until 3) {
             val process: Process
@@ -143,7 +138,9 @@ class AndroidDisplay(
                     buffer[n + 0] = inputStream.read().toByte()
                     inputStream.skip(1)
                 }
-                return img
+                val capture = Capture(System.currentTimeMillis(), img)
+                lastCapture = capture
+                return capture
             } catch (t: Throwable) {
                 device.assertConnected()
                 throwables.add(t)
@@ -160,8 +157,10 @@ class AndroidDisplay(
         height(height)
         avutil.av_image_alloc(data(), linesize(), width(), height(), format(), 1)
     }
+    private var lastFrameTime = 0L
+    private var latch: CountDownLatch? = null
 
-    private fun doScrcpyCapture(): BufferedImage {
+    private fun doScrcpyCapture(): Capture {
         if (scrcpyThread == null) {
             scrcpyThread = thread(true, name = "Scrcpy Capture Thread") {
                 val metaDataBuffer = ByteBuffer.allocate(12)
@@ -231,6 +230,8 @@ class AndroidDisplay(
                             bgrFrame.data(),
                             bgrFrame.linesize()
                         )
+                        lastFrameTime = System.currentTimeMillis()
+                        latch?.countDown()
                     }
                 }
 
@@ -252,8 +253,10 @@ class AndroidDisplay(
 
         return try {
             val img = BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR)
+            latch = CountDownLatch(1)
+            latch?.await(1000, TimeUnit.MILLISECONDS)
             bgrFrame.data(0).get((img.raster.dataBuffer as DataBufferByte).data)
-            img
+            Capture(lastFrameTime, img)
         } catch (e: SocketException) {
             device.resetScrcpy()
             doScrcpyCapture()

@@ -132,19 +132,22 @@ class AndroidTouchInterface private constructor(
         }
 
     private fun transformTouch(touch: ITouchInterface.Touch): ITouchInterface.Touch {
-        val xCoord: Int
-        val yCoord: Int
-        when (device.orientation) {
-            AndroidDevice.Orientation.NORMAL -> {
-                xCoord = touch.cursorX
-                yCoord = touch.cursorY
-            }
-            AndroidDevice.Orientation.ROTATED -> {
-                xCoord = touch.cursorY
-                yCoord = touch.cursorX
-            }
-        }
-        return touch.copy(cursorX = xCoord, cursorY = yCoord)
+        return touch
+//      Might not need this anymore with scrcpy capture I guess?
+//        val xCoord: Int
+//        val yCoord: Int
+//        when (device.orientation) {
+//            AndroidDevice.Orientation.NORMAL -> {
+//                xCoord = touch.cursorX
+//                yCoord = touch.cursorY
+//            }
+//            AndroidDevice.Orientation.ROTATED -> {
+//                xCoord = touch.cursorY
+//                yCoord = touch.cursorX
+//            }
+//        }
+//        return touch.copy(cursorX = xCoord, cursorY = yCoord)
+//
     }
 
     private fun sendEvent(
