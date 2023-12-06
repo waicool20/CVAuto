@@ -26,7 +26,6 @@ package com.waicool20.cvauto.android
 
 import com.waicool20.cvauto.android.input.AndroidInput
 import com.waicool20.cvauto.core.IDevice
-import com.waicool20.cvauto.core.Pixels
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.absolutePathString
@@ -50,9 +49,7 @@ class AndroidDevice internal constructor(val serial: String) :
         val brand: String,
         val manufacturer: String,
         val model: String,
-        val name: String,
-        val displayWidth: Pixels,
-        val displayHeight: Pixels
+        val name: String
     )
 
     enum class Orientation {
@@ -84,19 +81,12 @@ class AndroidDevice internal constructor(val serial: String) :
             Regex("\\[(.*?)]: \\[(.*?)]").matchEntire(str)?.groupValues?.let { it[1] to it[2] }
         }.toMap()
 
-        val wmsize = execute("wm size").readText().trim()
-        val (width, height) = Regex("Physical size: (\\d+?)x(\\d+?)")
-            .matchEntire(wmsize)?.destructured
-            ?: error("Could not detect display dimensions for device $serial, emulator returned: $wmsize")
-
         properties = Properties(
             androidVersion = props["ro.build.version.release"] ?: "Unknown",
             brand = props["ro.product.brand"] ?: "Unknown",
             model = props["ro.product.model"] ?: "Unknown",
             manufacturer = props["ro.product.manufacturer"] ?: "Unknown",
-            name = props["ro.product.name"] ?: "Unknown",
-            displayWidth = width.toInt(),
-            displayHeight = height.toInt()
+            name = props["ro.product.name"] ?: "Unknown"
         )
     }
 
@@ -158,17 +148,9 @@ class AndroidDevice internal constructor(val serial: String) :
             compressionMode = CompressionMode.NONE
         }
 
-        val displayRegex = Regex(".*DisplayDeviceInfo.*uniqueId=\".*:(\\d)\", (\\d+) x (\\d+).*")
-        displays = execute("dumpsys display").readLines()
-            .mapNotNull { displayRegex.matchEntire(it)?.destructured }
-            .map { (index, width, height) ->
-                AndroidDisplay(
-                    this,
-                    width.toInt(),
-                    height.toInt(),
-                    index.toInt()
-                )
-            }
+        displays = scrcpy.getDisplayInfo().mapIndexed { i, dimension ->
+            AndroidDisplay(this, dimension.width, dimension.height, i)
+        }
     }
 
     /**

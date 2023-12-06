@@ -25,91 +25,103 @@
 package com.waicool20.cvauto.android
 
 import com.waicool20.cvauto.android.input.AndroidInput
+import java.awt.Dimension
 import java.io.Closeable
 import java.net.Socket
 import java.nio.file.Path
-import kotlin.io.path.absolutePathString
 import kotlin.io.path.outputStream
 
 /**
  * Wrapper class for scrcpy process and sockets
  */
-class Scrcpy private constructor(
-    val port: Int,
-    val process: Process,
-    val video: Socket,
-    val audio: Socket,
-    val control: Socket
-) : Closeable {
+class Scrcpy private constructor(val device: AndroidDevice) : Closeable {
     companion object {
         val VERSION = "v2.2"
         val PATH: Path = CVAutoAndroid.HOME_DIR.resolve("scrcpy-server")
 
         internal fun getForDevice(device: AndroidDevice): Scrcpy {
-            extractServer()
-
-            device.push(PATH, "/data/local/tmp/")
-            device.executeShell("mv", "/data/local/tmp/scrcpy-server{,.jar}")
-
-            val port = NetUtils.getNextAvailablePort()
-            ADB.execute("-s", device.serial, "forward", "tcp:$port", "localabstract:scrcpy")
-
-            val process = ProcessBuilder(
-                ADB.binPath.absolutePathString(), "-s", device.serial, "shell",
-                "CLASSPATH=/data/local/tmp/scrcpy-server.jar app_process / com.genymobile.scrcpy.Server",
-                VERSION, "log_level=INFO", "tunnel_forward=true"
-            ).inheritIO().also {
-                it.environment()["ADB"] = ADB.binPath.absolutePathString()
-            }.start()
-
-            Thread.sleep(1000) // Needed otherwise socket sometimes doesnt connect properly
-
-            val videoSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
-            val vsi = videoSocket.getInputStream()
-            val audioSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
-            val asi = audioSocket.getInputStream()
-            val controlSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
-
-            // Read device information from video socket and print it
-            if (vsi.read() != 0) error("Could not connect to scrcpy video socket")
-            if (asi.read() != 0) error("Could not connect to scrcpy audio socket")
-            val readBuffer = ByteArray(64)
-            vsi.read(readBuffer)
-            val deviceNameIndex =
-                readBuffer.indexOfFirst { it == 0.toByte() }.takeIf { it != -1 } ?: 64
-            val deviceName = readBuffer.sliceArray(0 until deviceNameIndex).decodeToString()
-
-            println("Connected to $deviceName")
-
-            val scrcpy = Scrcpy(port, process, videoSocket, audioSocket, controlSocket)
-            // Make sure adb stuff gets cleaned up during shutdown
-            Runtime.getRuntime().addShutdownHook(Thread { scrcpy.close() })
-            return scrcpy
-        }
-
-        private fun extractServer() {
-            val inStream = AndroidInput::class.java
-                .getResourceAsStream("/com/waicool20/cvauto/android/scrcpy-server-$VERSION")!!
-            val outStream = PATH.outputStream()
-            inStream.copyTo(outStream)
-            inStream.close()
-            outStream.close()
+            return Scrcpy(device)
         }
     }
+
+    val port: Int = NetUtils.getNextAvailablePort()
+    val process: Process
+    val video: Socket
+    val audio: Socket? = null
+    val control: Socket
 
     private var _isClosed = false
 
     val isClosed: Boolean
         get() {
-            return _isClosed || video.isClosed || audio.isClosed || control.isClosed
+            return _isClosed || video.isClosed || audio?.isClosed == true || control.isClosed
         }
+
+    init {
+        extractServer()
+        ADB.execute("-s", device.serial, "forward", "tcp:$port", "localabstract:scrcpy")
+
+        process = runServerCommand("tunnel_forward=true", "audio=false")
+
+        Thread.sleep(1000) // Needed otherwise socket sometimes doesnt connect properly
+
+        val videoSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+        val vsi = videoSocket.getInputStream()
+        //val audioSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+        //val asi = audioSocket.getInputStream()
+        val controlSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+
+        // Read device information from video socket and print it
+        if (vsi.read() != 0) error("Could not connect to scrcpy video socket")
+        //if (asi.read() != 0) error("Could not connect to scrcpy audio socket")
+        val readBuffer = ByteArray(64)
+        vsi.read(readBuffer)
+        val deviceNameIndex =
+            readBuffer.indexOfFirst { it == 0.toByte() }.takeIf { it != -1 } ?: 64
+        val deviceName = readBuffer.sliceArray(0 until deviceNameIndex).decodeToString()
+
+        println("Connected to $deviceName")
+        video = videoSocket
+        control = controlSocket
+
+        // Make sure adb stuff gets cleaned up during shutdown
+        Runtime.getRuntime().addShutdownHook(Thread { close() })
+    }
+
+    fun getDisplayInfo(): List<Dimension> {
+        val regex = Regex(".*\\((\\d+)x(\\d+)\\).*")
+        return runServerCommand("list_displays=true").readLines()
+            .mapNotNull { line ->
+                val match = regex.matchEntire(line) ?: return@mapNotNull null
+                val (wstring, hstring) = match.destructured
+                return@mapNotNull Dimension(wstring.toInt(), hstring.toInt())
+            }
+    }
 
     override fun close() {
         _isClosed = true
         control.close()
-        audio.close()
+        audio?.close()
         video.close()
         process.destroy()
         ADB.execute("forward", "--remove", "tcp:$port")
+    }
+
+    private fun runServerCommand(vararg args: String): Process {
+        device.push(PATH, "/data/local/tmp/")
+        device.executeShell("mv", "/data/local/tmp/scrcpy-server{,.jar}")
+        return device.executeShell(
+            "CLASSPATH=/data/local/tmp/scrcpy-server.jar app_process / com.genymobile.scrcpy.Server",
+            VERSION, "log_level=INFO", *args
+        )
+    }
+
+    private fun extractServer() {
+        val inStream = AndroidInput::class.java
+            .getResourceAsStream("/com/waicool20/cvauto/android/scrcpy-server-$VERSION")!!
+        val outStream = PATH.outputStream()
+        inStream.copyTo(outStream)
+        inStream.close()
+        outStream.close()
     }
 }

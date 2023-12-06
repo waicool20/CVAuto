@@ -155,8 +155,8 @@ class AndroidTouchInterface private constructor(
     ) {
         val x = touch.cursorX
         val y = touch.cursorY
-        val w = device.properties.displayWidth
-        val h = device.properties.displayHeight
+        val w = device.displays.first().width
+        val h = device.displays.first().height
 
         if (LOG_INPUT_EVENTS) println("$event $touch $pressure $button")
 
