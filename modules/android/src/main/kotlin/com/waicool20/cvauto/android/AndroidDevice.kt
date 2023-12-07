@@ -247,6 +247,7 @@ class AndroidDevice internal constructor(val serial: String) :
         TimeUnit.MILLISECONDS.sleep(200)
         try {
             scrcpy = Scrcpy.getForDevice(this)
+            scrcpy.waitInitialized()
         } catch (e: Exception) {
             assertConnected()
             throw e

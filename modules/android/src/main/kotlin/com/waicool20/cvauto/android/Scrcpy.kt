@@ -50,15 +50,19 @@ class Scrcpy private constructor(val device: AndroidDevice) : Closeable {
 
     val port: Int = NetUtils.getNextAvailablePort()
     val process: Process
-    val video: Socket
-    val audio: Socket? = null
-    val control: Socket
-
+    var video: Socket? = null
+        private set
+    var audio: Socket? = null
+        private set
+    var control: Socket? = null
+        private set
     private var _isClosed = false
+
+    private val initThread: Thread
 
     val isClosed: Boolean
         get() {
-            return _isClosed || video.isClosed || audio?.isClosed == true || control.isClosed
+            return _isClosed || video?.isClosed == true || audio?.isClosed == true || control?.isClosed == true
         }
 
     init {
@@ -67,26 +71,28 @@ class Scrcpy private constructor(val device: AndroidDevice) : Closeable {
 
         process = runServerCommand("tunnel_forward=true", "audio=false")
 
-        Thread.sleep(1000) // Needed otherwise socket sometimes doesnt connect properly
+        initThread = thread(name = "Scrcpy for $device init thread", isDaemon = true) {
+            Thread.sleep(3000) // Needed otherwise socket sometimes doesnt connect properly
 
-        val videoSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
-        val vsi = videoSocket.getInputStream()
-        //val audioSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
-        //val asi = audioSocket.getInputStream()
-        val controlSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+            val videoSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+            val vsi = videoSocket.getInputStream()
+            //val audioSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+            //val asi = audioSocket.getInputStream()
+            val controlSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
 
-        // Read device information from video socket and print it
-        if (vsi.read() != 0) error("Could not connect to scrcpy video socket")
-        //if (asi.read() != 0) error("Could not connect to scrcpy audio socket")
-        val readBuffer = ByteArray(64)
-        vsi.read(readBuffer)
-        val deviceNameIndex =
-            readBuffer.indexOfFirst { it == 0.toByte() }.takeIf { it != -1 } ?: 64
-        val deviceName = readBuffer.sliceArray(0 until deviceNameIndex).decodeToString()
+            // Read device information from video socket and print it
+            if (vsi.read() != 0) error("Could not connect to scrcpy video socket")
+            //if (asi.read() != 0) error("Could not connect to scrcpy audio socket")
+            val readBuffer = ByteArray(64)
+            vsi.read(readBuffer)
+            val deviceNameIndex =
+                readBuffer.indexOfFirst { it == 0.toByte() }.takeIf { it != -1 } ?: 64
+            val deviceName = readBuffer.sliceArray(0 until deviceNameIndex).decodeToString()
 
-        println("Connected to $deviceName")
-        video = videoSocket
-        control = controlSocket
+            logger.debug("Connected to $deviceName")
+            video = videoSocket
+            control = controlSocket
+        }
 
         // Make sure adb stuff gets cleaned up during shutdown
         Runtime.getRuntime().addShutdownHook(Thread { close() })
@@ -102,11 +108,15 @@ class Scrcpy private constructor(val device: AndroidDevice) : Closeable {
             }
     }
 
+    fun waitInitialized() {
+        initThread.join()
+    }
+
     override fun close() {
         _isClosed = true
-        control.close()
+        control?.close()
         audio?.close()
-        video.close()
+        video?.close()
         process.destroy()
         ADB.execute("forward", "--remove", "tcp:$port")
     }

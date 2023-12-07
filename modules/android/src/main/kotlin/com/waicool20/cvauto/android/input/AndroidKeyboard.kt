@@ -116,7 +116,9 @@ class AndroidKeyboard private constructor(
             .putInt(meta) // Meta flags
 
         try {
-            device.scrcpy.control.getOutputStream().apply {
+            val controlSocket =
+                device.scrcpy.control ?: error("Control socket for device not initialized")
+            controlSocket.getOutputStream().apply {
                 write(writeBuffer)
                 flush()
             }

@@ -34,6 +34,7 @@ import org.bytedeco.ffmpeg.avutil.AVDictionary
 import org.bytedeco.ffmpeg.global.avcodec
 import org.bytedeco.ffmpeg.global.avutil
 import org.bytedeco.ffmpeg.global.swscale
+import org.slf4j.LoggerFactory
 import java.awt.image.BufferedImage
 import java.awt.image.DataBufferByte
 import java.io.EOFException
@@ -70,7 +71,6 @@ class AndroidDisplay(
     override var lastCapture: Capture =
         Capture(0, BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR))
         private set
-
 
     override fun capture(): Capture {
         _stats.captureRequests++
@@ -152,7 +152,6 @@ class AndroidDisplay(
             ?: Exception("Unknown cause"))
     }
 
-    private var scrcpyThread: Thread? = null
     private val bgrFrame = avutil.av_frame_alloc().apply {
         format(avutil.AV_PIX_FMT_BGR24)
         width(width)
@@ -161,98 +160,13 @@ class AndroidDisplay(
     }
     private var lastFrameTime = 0L
     private var latch: CountDownLatch? = null
+    private val scrcpyThread =
+        thread(start = false, isDaemon = false, name = "Scrcpy Capture Thread") {
+            while (!Thread.interrupted()) scrcpyCaptureLoop()
+        }
 
     private fun doScrcpyCapture(): Capture {
-        if (scrcpyThread == null) {
-            scrcpyThread = thread(true, name = "Scrcpy Capture Thread") {
-                val metaDataBuffer = ByteBuffer.allocate(12)
-
-                val ch = Channels.newChannel(device.scrcpy.video.getInputStream())
-                ch.readFully(metaDataBuffer)
-
-                metaDataBuffer.getInt() // codecId
-                val videoWidth = metaDataBuffer.getInt()
-                val videoHeight = metaDataBuffer.getInt()
-
-                val avCodec = avcodec.avcodec_find_decoder(avcodec.AV_CODEC_ID_H264)
-                val avCodecContext = avcodec.avcodec_alloc_context3(avCodec).apply {
-                    flags(flags() or avcodec.AV_CODEC_FLAG_LOW_DELAY)
-                    width(videoWidth)
-                    height(videoHeight)
-                    pix_fmt(avutil.AV_PIX_FMT_YUV420P)
-                }
-
-                avcodec.avcodec_open2(avCodecContext, avCodec, AVDictionary())
-
-                val packet = avcodec.av_packet_alloc()
-                val yuvFrame = avutil.av_frame_alloc()
-
-                val convertContext = swscale.sws_getContext(
-                    videoWidth,
-                    videoHeight,
-                    avCodecContext.pix_fmt(),
-                    videoWidth,
-                    videoHeight,
-                    avutil.AV_PIX_FMT_BGR24,
-                    swscale.SWS_BICUBIC,
-                    null, null, doubleArrayOf()
-                )
-
-                while (!Thread.interrupted()) {
-                    ch.readFully(metaDataBuffer)
-
-                    val ptsAndFlags = metaDataBuffer.getLong().toULong()
-                    val packetSize = metaDataBuffer.getInt()
-
-                    val isConfig = ptsAndFlags and (1UL shl 63) != 0UL
-                    val isKeyFrame = ptsAndFlags and (1UL shl 62) != 0UL
-                    val pts = ptsAndFlags and (3UL shl 62).inv()
-
-                    avcodec.av_new_packet(packet, packetSize)
-
-                    val packetBuffer = packet.data().capacity(packetSize.toLong()).asByteBuffer()
-                    ch.readFully(packetBuffer)
-
-                    packet.pts(if (isConfig) avutil.AV_NOPTS_VALUE else pts.toLong())
-
-                    if (isKeyFrame) {
-                        packet.flags(packet.flags() or avcodec.AV_PKT_FLAG_KEY)
-                    }
-
-                    avcodec.avcodec_send_packet(avCodecContext, packet)
-                    avcodec.avcodec_receive_frame(avCodecContext, yuvFrame)
-
-                    if (!isConfig) {
-                        swscale.sws_scale(
-                            convertContext,
-                            yuvFrame.data(),
-                            yuvFrame.linesize(),
-                            0,
-                            yuvFrame.height(),
-                            bgrFrame.data(),
-                            bgrFrame.linesize()
-                        )
-                        lastFrameTime = System.currentTimeMillis()
-                        latch?.countDown()
-                    }
-                }
-
-                // Free data when done
-                avcodec.av_packet_free(packet)
-                avutil.av_frame_free(yuvFrame)
-                swscale.sws_freeContext(convertContext)
-                avcodec.avcodec_close(avCodecContext)
-                avcodec.avcodec_free_context(avCodecContext)
-            }
-        }
-
-        if (scrcpyThread?.isAlive == false || device.scrcpy.isClosed) {
-            device.resetScrcpy()
-            scrcpyThread?.interrupt()
-            scrcpyThread = null
-            return doScrcpyCapture()
-        }
-
+        if (!scrcpyThread.isAlive) scrcpyThread.start()
         return try {
             val img = BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR)
             latch = CountDownLatch(1)
@@ -266,6 +180,110 @@ class AndroidDisplay(
             device.assertConnected()
             throw Region.CaptureIOException(t)
         }
+    }
+
+    private fun scrcpyCaptureLoop() {
+        logger.debug("Started new capture thread for {}", device)
+        device.scrcpy.waitInitialized()
+        val videoSocket = device.scrcpy.video
+        if (videoSocket == null || videoSocket.isClosed) {
+            device.resetScrcpy()
+            return
+        }
+        val metaDataBuffer = ByteBuffer.allocate(12)
+        val ch = Channels.newChannel(videoSocket.getInputStream())
+        try {
+            ch.readFully(metaDataBuffer)
+        } catch (e: Exception) {
+            device.resetScrcpy()
+            e.printStackTrace()
+            return
+        }
+
+        metaDataBuffer.getInt() // codecId
+        val videoWidth = metaDataBuffer.getInt()
+        val videoHeight = metaDataBuffer.getInt()
+
+        val avCodec = avcodec.avcodec_find_decoder(avcodec.AV_CODEC_ID_H264)
+        val avCodecContext = avcodec.avcodec_alloc_context3(avCodec).apply {
+            flags(flags() or avcodec.AV_CODEC_FLAG_LOW_DELAY)
+            width(videoWidth)
+            height(videoHeight)
+            pix_fmt(avutil.AV_PIX_FMT_YUV420P)
+        }
+
+        avcodec.avcodec_open2(avCodecContext, avCodec, AVDictionary())
+
+        val yuvFrame = avutil.av_frame_alloc()
+
+        val convertContext = swscale.sws_getContext(
+            videoWidth,
+            videoHeight,
+            avCodecContext.pix_fmt(),
+            videoWidth,
+            videoHeight,
+            avutil.AV_PIX_FMT_BGR24,
+            swscale.SWS_BICUBIC,
+            null, null, doubleArrayOf()
+        )
+
+        while (!Thread.interrupted()) {
+            try {
+                ch.readFully(metaDataBuffer)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                break
+            }
+
+            val ptsAndFlags = metaDataBuffer.getLong().toULong()
+            val packetSize = metaDataBuffer.getInt()
+
+            val isConfig = ptsAndFlags and (1UL shl 63) != 0UL
+            val isKeyFrame = ptsAndFlags and (1UL shl 62) != 0UL
+            val pts = ptsAndFlags and (3UL shl 62).inv()
+
+            val packet = avcodec.av_packet_alloc()
+            avcodec.av_new_packet(packet, packetSize)
+
+            val packetBuffer = packet.data().capacity(packetSize.toLong()).asByteBuffer()
+
+            try {
+                ch.readFully(packetBuffer)
+            } catch (e: Exception) {
+                avcodec.av_packet_free(packet)
+                e.printStackTrace()
+                break
+            }
+
+            packet.pts(if (isConfig) avutil.AV_NOPTS_VALUE else pts.toLong())
+
+            if (isKeyFrame) {
+                packet.flags(packet.flags() or avcodec.AV_PKT_FLAG_KEY)
+            }
+
+            avcodec.avcodec_send_packet(avCodecContext, packet)
+            avcodec.av_packet_free(packet)
+            val err = avcodec.avcodec_receive_frame(avCodecContext, yuvFrame)
+            if (err == avutil.AVERROR_EAGAIN()) continue
+            if (isConfig) continue
+            swscale.sws_scale(
+                convertContext,
+                yuvFrame.data(),
+                yuvFrame.linesize(),
+                0,
+                yuvFrame.height(),
+                bgrFrame.data(),
+                bgrFrame.linesize()
+            )
+            lastFrameTime = System.currentTimeMillis()
+            latch?.countDown()
+        }
+
+        // Free data when done
+        avutil.av_frame_free(yuvFrame)
+        swscale.sws_freeContext(convertContext)
+        avcodec.avcodec_close(avCodecContext)
+        avcodec.avcodec_free_context(avCodecContext)
     }
 
     private fun ReadableByteChannel.readFully(buffer: ByteBuffer) {

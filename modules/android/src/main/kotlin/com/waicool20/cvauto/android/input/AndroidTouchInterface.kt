@@ -46,8 +46,6 @@ class AndroidTouchInterface private constructor(
     ) : ITouchInterface.Settings
 
     companion object {
-        var LOG_INPUT_EVENTS = false
-
         internal fun getForDevice(device: AndroidDevice): AndroidTouchInterface {
             return AndroidTouchInterface(device)
         }
@@ -162,7 +160,7 @@ class AndroidTouchInterface private constructor(
         val w = device.displays.first().width
         val h = device.displays.first().height
 
-        logger.trace("$event $touch $pressure $button")
+        logger.trace("{} {} {} {}", event, touch, pressure, button)
 
         // see https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/ControlMessageReader.java#L135
         ByteBuffer.wrap(writeBuffer)
@@ -178,7 +176,9 @@ class AndroidTouchInterface private constructor(
             .putInt(button.code.toInt())
             .putInt(button.code.toInt())
         try {
-            device.scrcpy.control.getOutputStream().apply {
+            val controlSocket =
+                device.scrcpy.control ?: error("Control socket for device not initialized")
+            controlSocket.getOutputStream().apply {
                 write(writeBuffer)
                 flush()
             }
