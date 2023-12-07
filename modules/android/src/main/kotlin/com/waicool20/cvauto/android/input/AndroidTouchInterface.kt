@@ -28,6 +28,7 @@ import com.waicool20.cvauto.android.AndroidDevice
 import com.waicool20.cvauto.core.Millis
 import com.waicool20.cvauto.core.input.ITouchInterface
 import com.waicool20.cvauto.core.util.Animations
+import org.slf4j.LoggerFactory
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
@@ -38,6 +39,7 @@ import kotlin.random.Random
 class AndroidTouchInterface private constructor(
     private val device: AndroidDevice
 ) : ITouchInterface {
+    private val logger = LoggerFactory.getLogger(AndroidTouchInterface::class.java)
     data class AndroidTouchInterfaceSettings(
         override var midTapDelay: Millis = 0,
         override var postTapDelay: Millis = 250
@@ -147,7 +149,6 @@ class AndroidTouchInterface private constructor(
 //            }
 //        }
 //        return touch.copy(cursorX = xCoord, cursorY = yCoord)
-//
     }
 
     private fun sendEvent(
@@ -161,7 +162,7 @@ class AndroidTouchInterface private constructor(
         val w = device.displays.first().width
         val h = device.displays.first().height
 
-        if (LOG_INPUT_EVENTS) println("$event $touch $pressure $button")
+        logger.trace("$event $touch $pressure $button")
 
         // see https://github.com/Genymobile/scrcpy/blob/master/server/src/main/java/com/genymobile/scrcpy/ControlMessageReader.java#L135
         ByteBuffer.wrap(writeBuffer)

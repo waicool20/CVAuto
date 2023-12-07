@@ -24,6 +24,7 @@
 
 package com.waicool20.cvauto.android
 
+import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.net.URL
 import java.nio.channels.Channels
@@ -41,6 +42,7 @@ import kotlin.io.path.outputStream
  * if it doesn't exist
  */
 object ADB {
+    private val logger = LoggerFactory.getLogger(ADB::class.java)
     private val platformToolsDir = CVAutoAndroid.HOME_DIR.resolve("platform-tools")
     val binPath = run {
         val os = System.getProperty("os.name").lowercase()
@@ -87,7 +89,7 @@ object ADB {
                         try {
                             AndroidDevice(serial).also { deviceCache[serial] = it }
                         } catch (e: Exception) {
-                            println("Could not initialize device: $serial, skipping")
+                            logger.warn("Could not initialize device: $serial, skipping")
                             e.printStackTrace()
                             null
                         }

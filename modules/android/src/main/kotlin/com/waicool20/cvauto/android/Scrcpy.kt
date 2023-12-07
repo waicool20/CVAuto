@@ -25,16 +25,20 @@
 package com.waicool20.cvauto.android
 
 import com.waicool20.cvauto.android.input.AndroidInput
+import org.slf4j.LoggerFactory
 import java.awt.Dimension
 import java.io.Closeable
 import java.net.Socket
 import java.nio.file.Path
+import kotlin.concurrent.thread
 import kotlin.io.path.outputStream
 
 /**
  * Wrapper class for scrcpy process and sockets
  */
 class Scrcpy private constructor(val device: AndroidDevice) : Closeable {
+    private val logger = LoggerFactory.getLogger(Scrcpy::class.java)
+
     companion object {
         val VERSION = "v2.2"
         val PATH: Path = CVAutoAndroid.HOME_DIR.resolve("scrcpy-server")

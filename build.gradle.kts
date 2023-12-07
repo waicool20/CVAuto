@@ -25,6 +25,7 @@ allprojects {
 
         implementation(kotlin("stdlib"))
         implementation(kotlin("reflect"))
+        implementation("org.slf4j:slf4j-api:2.0.9")
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${versions.KotlinCoroutines}")
 
         // Tests

@@ -53,6 +53,8 @@ class AndroidDisplay(
     override val height: Pixels,
     override val index: Int
 ) : IDisplay<AndroidDevice, AndroidDisplay, AndroidRegion> {
+    private val logger = LoggerFactory.getLogger(AndroidDisplay::class.java)
+
     data class Stats(var captureRequests: Long = 0, var cacheHits: Long = 0)
     companion object {
         private val executorLock = ReentrantLock()
