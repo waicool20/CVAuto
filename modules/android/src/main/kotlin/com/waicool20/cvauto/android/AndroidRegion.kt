@@ -30,26 +30,6 @@ import com.waicool20.cvauto.core.Pixels
 import com.waicool20.cvauto.core.Region
 import com.waicool20.cvauto.core.input.IInput
 import com.waicool20.cvauto.core.input.ITouchInterface
-import net.jpountz.lz4.LZ4FrameInputStream
-import org.bytedeco.ffmpeg.avutil.AVDictionary
-import org.bytedeco.ffmpeg.global.avcodec.*
-import org.bytedeco.ffmpeg.global.avutil.*
-import org.bytedeco.ffmpeg.global.swscale.*
-import java.awt.image.BufferedImage
-import java.awt.image.DataBufferByte
-import java.io.EOFException
-import java.net.SocketException
-import java.nio.ByteBuffer
-import java.nio.channels.Channels
-import java.nio.channels.ReadableByteChannel
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
-import java.util.concurrent.locks.ReentrantLock
-import java.util.zip.GZIPInputStream
-import kotlin.concurrent.thread
-import kotlin.concurrent.withLock
 import kotlin.math.roundToInt
 
 class AndroidRegion(
@@ -72,7 +52,6 @@ class AndroidRegion(
     }
 
     override fun type(text: String) {
-        click()
         device.input.keyboard.type(text)
     }
 
