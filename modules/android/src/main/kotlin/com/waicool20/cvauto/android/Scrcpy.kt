@@ -72,26 +72,30 @@ class Scrcpy private constructor(val device: AndroidDevice) : Closeable {
         process = runServerCommand("tunnel_forward=true", "audio=false")
 
         initThread = thread(name = "Scrcpy for $device init thread", isDaemon = true) {
-            Thread.sleep(3000) // Needed otherwise socket sometimes doesnt connect properly
+            try {
+                Thread.sleep(3000) // Needed otherwise socket sometimes doesnt connect properly
 
-            val videoSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
-            val vsi = videoSocket.getInputStream()
-            //val audioSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
-            //val asi = audioSocket.getInputStream()
-            val controlSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+                val videoSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+                val vsi = videoSocket.getInputStream()
+                //val audioSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
+                //val asi = audioSocket.getInputStream()
+                val controlSocket = Socket("127.0.0.1", port).apply { tcpNoDelay = true }
 
-            // Read device information from video socket and print it
-            if (vsi.read() != 0) error("Could not connect to scrcpy video socket")
-            //if (asi.read() != 0) error("Could not connect to scrcpy audio socket")
-            val readBuffer = ByteArray(64)
-            vsi.read(readBuffer)
-            val deviceNameIndex =
-                readBuffer.indexOfFirst { it == 0.toByte() }.takeIf { it != -1 } ?: 64
-            val deviceName = readBuffer.sliceArray(0 until deviceNameIndex).decodeToString()
+                // Read device information from video socket and print it
+                if (vsi.read() != 0) error("Could not connect to scrcpy video socket")
+                //if (asi.read() != 0) error("Could not connect to scrcpy audio socket")
+                val readBuffer = ByteArray(64)
+                vsi.read(readBuffer)
+                val deviceNameIndex =
+                    readBuffer.indexOfFirst { it == 0.toByte() }.takeIf { it != -1 } ?: 64
+                val deviceName = readBuffer.sliceArray(0 until deviceNameIndex).decodeToString()
 
-            logger.debug("Connected to $deviceName")
-            video = videoSocket
-            control = controlSocket
+                logger.debug("Connected to $deviceName")
+                video = videoSocket
+                control = controlSocket
+            } catch (e: Exception) {
+                logger.error("Scrcpy could not connect to $device", e)
+            }
         }
 
         // Make sure adb stuff gets cleaned up during shutdown
